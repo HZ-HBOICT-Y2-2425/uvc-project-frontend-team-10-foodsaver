@@ -2,7 +2,7 @@
     import { onMount } from "svelte";
 
     const apiKey = "7e9812af07664d9cab95027605fc7484";
-    let recipeId = "640803";
+    let recipeId = "663971";
     let recipe = null;
     let error = null;
 
@@ -27,8 +27,18 @@
     });
 
     function getSteps(instructions) {
-        return instructions.split(".").filter((step) => step.trim() !== "");
-    }
+    // 使用 DOMParser 解析指令中的 HTML，并提取纯文本内容
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(instructions, "text/html");
+    const textContent = doc.body.textContent || "";
+
+    // 将纯文本按句子分割并过滤空白内容
+    return textContent
+        .split(".")
+        .map((step) => step.trim())
+        .filter((step) => step !== "");
+}
+
 
     function containsTime(step) {
         return /\b(minutes?|hours?|seconds?|mins?)\b/i.test(step);
@@ -77,7 +87,16 @@
     <div class="container w-full mx-auto">
         <section class="flex flex-col lg:flex-row mt-5">
             <div class="basis-2/6 bg-gray-100 rounded-lg p-10 lg:mr-8">
-                <img src={recipe.image} alt={recipe.title} />
+                <img class="rounded-lg mb-5" src={recipe.image} alt={recipe.title} />
+                
+                <div class="recipe-card mt-3 p-4 bg-white border border-gray-300 rounded-lg text-center">
+                    <p class="text-lg font-semibold mb-4">
+                        If you finished this recipe, you can click the button below to get your CO2 reduction calculated into account.
+                    </p>
+                    <button class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                        Complete
+                    </button>
+                </div>
             </div>
             <div class="basis-4/6 bg-gray-100 rounded-lg p-10 lg:mr-8">
                 <h1 class="text-4xl mt-3 mb-3">{recipe.title}</h1>
@@ -204,5 +223,19 @@
 
     .z-50 {
         z-index: 50;
+    }
+
+    .recipe-card {
+        width: 100%;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .recipe-card p {
+        font-size: 1.1rem;
+    }
+
+    .recipe-card button {
+        font-size: 1.1rem;
     }
 </style>

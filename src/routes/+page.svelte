@@ -1,9 +1,13 @@
 <script>
     import "../app.css";
+    import Recipe from "$lib/components/Recipe.svelte";
 </script>
 
-<h1 class="bg-lime-400">Welcome to SvelteKit</h1>
-<p>
-    Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the
-    documentation
-</p>
+<div class="container w-full mx-auto">
+    <section class="mt-4">
+        <h2 class="text-6xl">
+            R<span class="inline-block bg-green-100 rounded-lg">ecipe</span>
+        </h2>
+        <Recipe />
+    </section>
+</div>

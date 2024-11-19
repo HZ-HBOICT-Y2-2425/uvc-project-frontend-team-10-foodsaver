@@ -1,5 +1,10 @@
 <script>
     import { onMount } from "svelte";
+    import { goto } from "$app/navigation";
+
+    function goToProfile() {
+        goto("/profile");
+    }
 
     const apiKey = "7e9812af07664d9cab95027605fc7484";
     let recipeId = "663971";
@@ -7,7 +12,7 @@
     let error = null;
 
     let countdowns = [];
-    let showModal = false; // Control modal visibility
+    let showModal = false;
 
     onMount(async () => {
         try {
@@ -27,18 +32,15 @@
     });
 
     function getSteps(instructions) {
-    // 使用 DOMParser 解析指令中的 HTML，并提取纯文本内容
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(instructions, "text/html");
-    const textContent = doc.body.textContent || "";
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(instructions, "text/html");
+        const textContent = doc.body.textContent || "";
 
-    // 将纯文本按句子分割并过滤空白内容
-    return textContent
-        .split(".")
-        .map((step) => step.trim())
-        .filter((step) => step !== "");
-}
-
+        return textContent
+            .split(".")
+            .map((step) => step.trim())
+            .filter((step) => step !== "");
+    }
 
     function containsTime(step) {
         return /\b(minutes?|hours?|seconds?|mins?)\b/i.test(step);
@@ -55,7 +57,7 @@
             );
             if (time <= 0) {
                 clearInterval(interval);
-                showTimeUpModal(); // Show modal when time is up
+                showTimeUpModal();
             }
         }, 1000);
 
@@ -87,13 +89,23 @@
     <div class="container w-full mx-auto">
         <section class="flex flex-col lg:flex-row mt-5">
             <div class="basis-2/6 bg-gray-100 rounded-lg p-10 lg:mr-8">
-                <img class="rounded-lg mb-5" src={recipe.image} alt={recipe.title} />
-                
-                <div class="recipe-card mt-3 p-4 bg-white border border-gray-300 rounded-lg text-center">
+                <img
+                    class="rounded-lg mb-5"
+                    src={recipe.image}
+                    alt={recipe.title}
+                />
+
+                <div
+                    class="recipe-card mt-3 p-4 bg-white border border-gray-300 rounded-lg text-center"
+                >
                     <p class="text-lg font-semibold mb-4">
-                        If you finished this recipe, you can click the button below to get your CO2 reduction calculated into account.
+                        If you finished this recipe, you can click the button
+                        below to get your CO2 reduction calculated into account.
                     </p>
-                    <button class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    <button
+                        on:click={goToProfile}
+                        class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                    >
                         Complete
                     </button>
                 </div>
@@ -165,7 +177,6 @@
         </section>
     </div>
 
-    <!-- Modal for Time Up -->
     {#if showModal}
         <div
             class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"

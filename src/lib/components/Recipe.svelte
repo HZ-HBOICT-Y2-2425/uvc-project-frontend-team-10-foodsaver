@@ -123,7 +123,12 @@
                 </div>
 
                 <h2 class="text-4xl mt-3 mb-3">Ingredients</h2>
-                <p>
+                 <ul>
+                    {#each recipe.extendedIngredients as ingredient}
+                        <li>{ingredient.original}</li>
+                    {/each}
+                </ul>
+                <!-- <p>
                     {#if recipe.extendedIngredients.length > 0}
                         {recipe.extendedIngredients
                             .map((ingredient) => ingredient.original)
@@ -131,7 +136,7 @@
                     {:else}
                         No ingredients found.
                     {/if}
-                </p>
+                </p> -->
 
                 <h2 class="text-4xl mt-3 mb-3">Instructions</h2>
                 {#each getSteps(recipe.instructions) as step, index (step)}

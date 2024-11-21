@@ -1,9 +1,16 @@
 <script>
-    import "../app.css";
+  import RecipeSearch from '../components/RecipeSearch.svelte';
+  import Pantry from '../components/Pantry.svelte';
+  
 </script>
 
-<h1 class="bg-lime-400">Welcome to SvelteKit</h1>
-<p>
-    Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the
-    documentation
-</p>
+<div class="main-content mt-4 flex-1 flex">
+  <RecipeSearch />
+</div>
+
+<style>
+  .main-content {
+    display: flex;
+    flex-grow: 1;
+  }
+</style>

@@ -1,13 +1,16 @@
 <script>
-    import "../app.css";
-    import Recipe from "$lib/components/Recipe.svelte";
+  import RecipeSearch from '../components/RecipeSearch.svelte';
+  import Pantry from '../components/Pantry.svelte';
+  
 </script>
 
-<div class="container w-full mx-auto">
-    <section class="mt-4">
-        <h2 class="text-6xl">
-            R<span class="inline-block bg-green-100 rounded-lg">ecipe</span>
-        </h2>
-        <Recipe />
-    </section>
+<div class="main-content mt-4 flex-1 flex">
+  <RecipeSearch />
 </div>
+
+<style>
+  .main-content {
+    display: flex;
+    flex-grow: 1;
+  }
+</style>

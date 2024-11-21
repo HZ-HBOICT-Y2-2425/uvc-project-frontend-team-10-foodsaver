@@ -1,9 +1,15 @@
 <script>
     import '../../app.css';
 
-    let username = "username"; // Variable dinámica para el nombre del usuario
-    let expiringIngredients = ["🥦", "🧀", "🫘", "🍞", "🧄", "🍌"]; // Ejemplo de ingredientes
+    let username = "username";
+    let expiringIngredients = ["🥦", "🧀", "🫘", "🍞", "🧄", "🍌"];
     let expiringRecipes = [
+        { name: "Asian bowl", image: "../../asian-bowl.jpg", favorite: true },
+        { name: "Brunch", image: "../../brunch.jpg", favorite: false },
+        { name: "Pancakes", image: "../../pancakes.jpg", favorite: false },
+        { name: "Asian bowl", image: "../../asian-bowl.jpg", favorite: true },
+        { name: "Brunch", image: "../../brunch.jpg", favorite: false },
+        { name: "Pancakes", image: "../../pancakes.jpg", favorite: false },
         { name: "Asian bowl", image: "../../asian-bowl.jpg", favorite: true },
         { name: "Brunch", image: "../../brunch.jpg", favorite: false },
         { name: "Pancakes", image: "../../pancakes.jpg", favorite: false },
@@ -12,22 +18,25 @@
         { name: "Christmas Turkey", image: "../../xmas-turkey.jpg", favorite: false },
         { name: "Egg Punch", image: "../../egg-punch.jpg", favorite: true },
         { name: "Chocolate Nougat", image: "../../chocolate-nougat.jpg", favorite: true },
+        { name: "Christmas Turkey", image: "../../xmas-turkey.jpg", favorite: false },
+        { name: "Egg Punch", image: "../../egg-punch.jpg", favorite: true },
+        { name: "Chocolate Nougat", image: "../../chocolate-nougat.jpg", favorite: true },
+          { name: "Christmas Turkey", image: "../../xmas-turkey.jpg", favorite: false },
+        { name: "Egg Punch", image: "../../egg-punch.jpg", favorite: true },
+        { name: "Chocolate Nougat", image: "../../chocolate-nougat.jpg", favorite: true },
     ];
 
-    // Cargar favoritos desde localStorage al iniciar la aplicación
+    import { onMount, onDestroy } from "svelte";
+
     onMount(() => {
         const storedFavorites = JSON.parse(localStorage.getItem("favoriteRecipes")) || [];
-        // Marcar recetas en expiringRecipes y SeasonalRecipes como favoritas según localStorage
         for (const recipe of [...expiringRecipes, ...SeasonalRecipes]) {
             recipe.favorite = storedFavorites.some(fav => fav.name === recipe.name);
         }
     });
 
-    // Actualizar localStorage cuando cambien los favoritos
     function toggleFavorite(recipe) {
         recipe.favorite = !recipe.favorite;
-
-        // Actualizar el estado en localStorage
         const allFavorites = [
             ...expiringRecipes.filter(r => r.favorite),
             ...SeasonalRecipes.filter(r => r.favorite),
@@ -35,19 +44,17 @@
         localStorage.setItem("favoriteRecipes", JSON.stringify(allFavorites));
     }
 
-    // Redirigir a la página de favoritos
     function goToFavorites() {
         window.location.href = '/favorites';
     }
 
-    // Ingredientes de la despensa actual
     let pantryIngredients = [
         "Carrots", "Cheese", "Shrimps", "Leeks", "Corn", "Lobster",
         "Cabbage", "Milk", "Avocado", "Mushrooms", "Flour", "Peanuts",
         "Banana", "Spinach", "Noodles", "Butter", "Fish"
     ];
 
-    let selectedIngredients = new Set(); // Conjunto para los ingredientes seleccionados
+    let selectedIngredients = new Set();
 
     function toggleIngredient(ingredient) {
         if (selectedIngredients.has(ingredient)) {
@@ -57,7 +64,6 @@
         }
     }
 
-    // Manejar la visibilidad del dropdown
     let isDropdownVisible = false;
 
     function toggleDropdown() {
@@ -68,7 +74,6 @@
         isDropdownVisible = false;
     }
 
-    // Detectar clics fuera del dropdown y la barra de búsqueda
     function handleDocumentClick(event) {
         const clickedInsideInput =
             event.target.closest(".search-bar") || event.target.closest(".dropdown");
@@ -77,8 +82,6 @@
         }
     }
 
-    // Añadir y quitar el evento de clic en el documento
-    import { onMount, onDestroy } from "svelte";
     onMount(() => {
         document.addEventListener("click", handleDocumentClick);
     });
@@ -88,32 +91,40 @@
     });
 </script>
 
-<div class="w-full h-full bg-white p-8 font-[Kalam]">
-    <!-- Encabezado -->
-    <div class="text-center mb-8">
-        <h1 class="text-green-900 text-5xl font-bold">Hello, "{username}"!</h1>
+<div class="w-full min-h-screen bg-white p-4 sm:p-8 font-[Kalam] bg-cover bg-center relative" style="background-image: url('../../plants-background.jpg');">
+    <!-- Bienvenida -->
+    <div class="text-center mb-6 z-10 relative">
+        <h1 class="text-green-900 text-3xl sm:text-5xl font-bold">Hello, {username}!</h1>
     </div>
 
-    <!-- Barra de búsqueda -->
-    <div class="relative flex items-center justify-center mb-8">
-        <div class="relative flex flex-col w-full max-w-md search-bar">
+    <!-- Leafs picture -->
+    <img class="LeafBackgroundRemoved9 w-72 h-60 left-[-80.30px] top-[800px] absolute origin-top-left rotate-[0.0deg] rounded-xl" 
+         src="../../../leaf-background2.png" 
+         alt="Leaf Background" />
+
+         <img class="LeafBackgroundRemoved9 w-72 h-60 right-[-90px] top-[250px] absolute origin-top-left rotate-[270deg] rounded-xl" 
+         src="../../../leaf-background1.png" 
+         alt="Leaf Background" />
+
+
+    <!-- Barra de búsqueda alargada -->
+    <div class="relative flex flex-col sm:flex-row items-center justify-center mb-6 z-10 relative">
+        <div class="relative w-full sm:w-1/2 lg:w-1/3 search-bar">
             <div class="flex items-center">
                 <input
                     type="text"
                     placeholder="Add ingredients/recipes"
-                    class="flex-grow p-2 pl-10 border border-gray-400 rounded-lg"
+                    class="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                     on:focus="{toggleDropdown}"
                 />
                 <span class="absolute left-3 text-gray-500 text-xl">🔍</span>
             </div>
             {#if isDropdownVisible}
-                <div
-                    class="absolute top-12 left-0 z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-auto dropdown"
-                >
+                <div class="absolute top-12 left-0 z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-auto dropdown">
                     <h3 class="text-lg font-bold px-4 py-2 bg-gray-100">Your current pantry</h3>
-                    <ul class="p-4">
+                    <ul class="p-4 space-y-2">
                         {#each pantryIngredients as ingredient}
-                            <li class="flex items-center mb-2">
+                            <li class="flex items-center">
                                 <input
                                     type="checkbox"
                                     id="{ingredient}"
@@ -129,35 +140,35 @@
             {/if}
         </div>
         <button
-            class="ml-4 px-4 py-2 bg-green-500 text-white rounded-lg"
+            class="mt-4 sm:mt-0 sm:ml-4 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
             on:click="{goToFavorites}"
         >
             Favorites
         </button>
     </div>
 
-    <!-- Ingredientes que están por expirar -->
-    <div class="text-center mb-8">
-        <h2 class="text-black text-4xl mb-4">Expiring ingredients</h2>
-        <div class="flex justify-center gap-4">
+    <!-- Ingredientes que expiran con navegación horizontal -->
+    <div class="text-start mb-6 z-10 relative">
+        <h2 class="text-green-800 text-2xl sm:text-4xl mb-4 sm:ml-60">Expiring ingredients</h2>
+        <div class="mx-left max-w-screen-lg overflow-x-auto flex gap-4 justify-start sm:ml-60">
             {#each expiringIngredients as ingredient}
-                <div class="w-12 h-12 flex items-center justify-center bg-zinc-300 rounded-full text-3xl">
-                    {ingredient}
+                <div class="flex-shrink-0 w-20 sm:w-24 border border-gray-300 rounded-lg p-4 text-center">
+                    <p class="text-lg">{ingredient}</p>
                 </div>
             {/each}
         </div>
     </div>
 
-    <!-- Recetas con los ingredientes -->
-    <div class="text-center mb-8">
-        <h2 class="text-black text-4xl mb-4">Recipes with your expiring ingredients:</h2>
-        <div class="flex justify-center gap-4 overflow-auto">
+    <!-- Recetas que expiran con navegación horizontal -->
+    <div class="text-start mb-6 z-10 relative">
+        <h2 class="text-green-800 text-2xl sm:text-4xl mb-4 sm:ml-60">Expiring Ingredients Recipes</h2>
+        <div class="mx-auto max-w-screen-xl overflow-x-auto flex gap-4 justify-start">
             {#each expiringRecipes as recipe}
-                <div class="p-4 w-48 border border-gray-300 rounded-lg text-center">
+                <div class="flex-shrink-0 w-40 sm:w-48 border border-gray-300 rounded-lg p-4 text-center">
                     <img
                         src={recipe.image}
                         alt="{recipe.name}"
-                        class="w-full h-32 object-cover mb-2 rounded-md"
+                        class="w-full h-40 object-cover mb-2 rounded-md"
                     />
                     <p class="text-lg">{recipe.name}</p>
                     <button
@@ -171,16 +182,16 @@
         </div>
     </div>
 
-    <!-- Recetas de temporada -->
-    <div class="text-center mb-8">
-        <h2 class="text-black text-4xl mb-4">Seasonal Recipes</h2>
-        <div class="flex justify-center gap-4 overflow-auto">
+    <!-- Recetas de temporada con navegación horizontal -->
+    <div class="text-start mb-6 z-10 relative">
+        <h2 class="text-green-800 text-2xl sm:text-4xl mb-4 sm:ml-60">Seasonal Recipes</h2>
+        <div class="mx-auto max-w-screen-xl overflow-x-auto flex gap-4 justify-start">
             {#each SeasonalRecipes as recipe}
-                <div class="p-4 w-48 border border-gray-300 rounded-lg text-center">
+                <div class="flex-shrink-0 w-40 sm:w-48 border border-gray-300 rounded-lg p-4 text-center">
                     <img
                         src={recipe.image}
                         alt="{recipe.name}"
-                        class="w-full h-32 object-cover mb-2 rounded-md"
+                        class="w-full h-40 object-cover mb-2 rounded-md"
                     />
                     <p class="text-lg">{recipe.name}</p>
                     <button
@@ -194,15 +205,3 @@
         </div>
     </div>
 </div>
-
-<style>
-    h1,
-    h2 {
-        font-family: 'Kalam', cursive;
-    }
-
-    input::placeholder {
-        font-style: italic;
-        color: gray;
-    }
-</style>

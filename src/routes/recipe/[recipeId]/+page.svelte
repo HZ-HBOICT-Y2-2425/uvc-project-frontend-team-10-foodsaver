@@ -1,12 +1,13 @@
-<script>
+<script lang="ts">
   import { goto } from "$app/navigation";
 
-  export let data;
-  const { recipe, error } = data;
+  export let data; // 默认接收 load 返回的数据
+  const { recipe } = data.props; // 解构出 recipe
+  console.log("Recipe data in component:", recipe); // 确保 recipe 是正确的
 
-  let countdowns = [];
+  let isFavorite = false; // 记录是否是收藏
+  let countdowns = []; // 记录倒计时
   let showModal = false;
-  let isFavorite = false; // 用来追踪爱心状态
 
   function toggleFavorite() {
     isFavorite = !isFavorite;
@@ -72,11 +73,7 @@
   }
 </script>
 
-{#if error}
-  <p class="error">{error}</p>
-{:else if !recipe}
-  <p>Loading...</p>
-{:else}
+{#if recipe}
   <div class="container w-full mx-auto">
     <section class="flex flex-col lg:flex-row mt-5">
       <div class="basis-2/6 bg-gray-100 rounded-lg p-10 lg:mr-8">
@@ -100,7 +97,7 @@
         <h1 class="text-4xl mt-3 mb-3">
           {recipe.title}
           <img
-            src={isFavorite ? "solid-heart.png" : "blank-heart.png"}
+            src={isFavorite ? "static/solid-heart.png" : "static/blank-heart.png"}
             alt="Favorite"
             class="inline-block w-6 h-6 cursor-pointer ml-3"
             on:click={toggleFavorite}
@@ -188,14 +185,11 @@
       </div>
     </div>
   {/if}
+{:else}
+  <p>Loading...</p>
 {/if}
 
 <style>
-  .error {
-    color: red;
-    font-weight: bold;
-  }
-
   .fixed {
     position: fixed;
   }
@@ -235,25 +229,5 @@
 
   .recipe-card button {
     font-size: 1.1rem;
-  }
-
-  .cursor-pointer {
-    cursor: pointer;
-  }
-
-  .inline-block {
-    display: inline-block;
-  }
-
-  .w-6 {
-    width: 1.5rem; /* 24px */
-  }
-
-  .h-6 {
-    height: 1.5rem; /* 24px */
-  }
-
-  .ml-3 {
-    margin-left: 0.75rem; /* 12px */
   }
 </style>

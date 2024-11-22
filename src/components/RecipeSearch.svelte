@@ -27,6 +27,62 @@
   <div
     class="search-bar-container flex items-center justify-center w-full relative mb-8"
   >
+    import { pantry } from '../lib/stores/pantryStore';
+  
+    let searchQuery = "";
+    let searchActive = false;
+    let selectedIngredients: string[] = [];
+
+    // Separate recipe indices for each section
+    let currentRecipeIndex1 = 0;
+    let currentRecipeIndex2 = 0;
+
+    const recipes = ['Asian bowl', 'Brunch', 'Pancakes', 'Spaghetti', 'Salad', 'Tacos', 'Curry', 'Stew', 'Pizza', 'Soup'];
+    const visibleRecipeCount = 6; // Display 6 cards initially
+
+    // Trigger search function
+    const searchRecipes = () => {
+      if (!selectedIngredients.length) {
+        alert('Please select at least one ingredient to search for recipes.');
+      } else {
+        // Redirect to the search results page with the selected ingredients
+        const ingredientsParam = selectedIngredients.join(',');
+        window.location.href = `/search?ingredients=${ingredientsParam}`;
+      }
+    };
+
+    // Recipe navigation functions for first section
+    const previousRecipes1 = () => {
+      if (currentRecipeIndex1 > 0) {
+        currentRecipeIndex1 -= 1; // Move by 1 card at a time
+      }
+    };
+
+    const nextRecipes1 = () => {
+      if (currentRecipeIndex1 + visibleRecipeCount < recipes.length) {
+        currentRecipeIndex1 += 1; // Move by 1 card at a time
+      }
+    };
+
+    // Recipe navigation functions for second section
+    const previousRecipes2 = () => {
+      if (currentRecipeIndex2 > 0) {
+        currentRecipeIndex2 -= 1; // Move by 1 card at a time
+      }
+    };
+
+    const nextRecipes2 = () => {
+      if (currentRecipeIndex2 + visibleRecipeCount < recipes.length) {
+        currentRecipeIndex2 += 1; // Move by 1 card at a time
+      }
+    };
+</script>
+
+<div class="container mx-auto mt-8 px-6 text-center">
+  <h2 class="text-3xl font-bold text-green-800 italic mb-6">Hello, "username"!</h2>
+
+  <!-- Search Bar Section -->
+  <div class="search-bar-container flex items-center justify-center w-full relative mb-8">
     <div class="relative flex-grow max-w-2xl">
       <input
         type="text"
@@ -65,21 +121,13 @@
             {#each $pantry as item}
               <li class="flex items-center mb-2">
                 <label class="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    bind:group={selectedIngredients}
-                    value={item}
-                    class="mr-2"
-                  />
+                  <input type="checkbox" bind:group={selectedIngredients} value={item} class="mr-2"/>
                   <span>{item}</span>
                 </label>
               </li>
             {/each}
           </ul>
-          <button
-            on:click={() => (searchActive = false)}
-            class="button-secondary mt-2">Close</button
-          >
+          <button on:click={() => (searchActive = false)} class="button-secondary mt-2">Close</button>
         </div>
       {/if}
     </div>
@@ -94,135 +142,85 @@
   </div>
 
   <!-- Expiring Ingredients Section -->
-  <div class="expiring-ingredients-section mb-8">
+  <div class="expiring-ingredients-section mb-8 text-left">
     <h3 class="text-2xl font-semibold mb-4">Expiring ingredients</h3>
-    <div class="flex items-center justify-center space-x-4">
+    <div class="flex items-center space-x-4">
       <button class="p-2 rounded-full border border-gray-300 bg-white">
-        <svg
-          class="w-4 h-4"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M15 19l-7-7 7-7"
-          />
+        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
       </button>
       <!-- Expiring Ingredients List (Example Data) -->
       <div class="flex space-x-4">
-        {#each ["Broccoli", "Cheese", "Beans", "Bread", "Garlic", "Banana"] as ingredient}
-          <div
-            class="ingredient-item w-12 h-12 rounded-full shadow-md flex items-center justify-center bg-gray-100"
-          >
-            <img
-              src={`/images/${ingredient.toLowerCase()}.png`}
-              alt={ingredient}
-              class="w-8 h-8"
-            />
+        {#each ['Broccoli', 'Cheese', 'Beans', 'Bread', 'Garlic', 'Banana'] as ingredient}
+          <div class="ingredient-item w-12 h-12 rounded-full shadow-md flex items-center justify-center bg-gray-100">
+            <img src={`/images/${ingredient.toLowerCase()}.png`} alt={ingredient} class="w-8 h-8" />
           </div>
         {/each}
       </div>
       <button class="p-2 rounded-full border border-gray-300 bg-white">
-        <svg
-          class="w-4 h-4"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M9 5l7 7-7 7"
-          />
+        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
       </button>
     </div>
   </div>
 
   <!-- Recipes with Expiring Ingredients Section -->
-  <div class="recipes-with-ingredients-section mb-8">
-    <h3 class="text-2xl font-semibold mb-4">
-      Recipes with your expiring ingredients:
-    </h3>
+  <div class="recipes-with-ingredients-section mb-8 text-left">
+    <h3 class="text-2xl font-semibold mb-4">Recipes with your expiring ingredients:</h3>
     <div class="flex items-center space-x-4 overflow-x-auto">
-      <button class="p-2 rounded-full border border-gray-300 bg-white">
-        <svg
-          class="w-4 h-4"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M15 19l-7-7 7-7"
-          />
+      <button on:click={previousRecipes1} class="p-2 rounded-full border border-gray-300 bg-white">
+        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
       </button>
-      <!-- Recipe Cards (Example Data) -->
+      <!-- Recipe Cards (Dynamic Data) -->
       <div class="flex space-x-4">
-        {#each ["Asian bowl", "Brunch", "Pancakes"] as recipe}
-          <div
-            class="recipe-card border p-4 rounded-lg text-center shadow-md w-40"
-          >
-            <img
-              src="/images/recipe_placeholder.png"
-              alt={recipe}
-              class="w-full h-24 object-cover rounded-md mb-2"
-            />
+        {#each recipes.slice(currentRecipeIndex1, currentRecipeIndex1 + visibleRecipeCount) as recipe}
+          <div class="recipe-card border p-4 rounded-lg text-center shadow-md w-40">
+            <img src="/images/recipe_placeholder.png" alt={recipe} class="w-full h-24 object-cover rounded-md mb-2" />
             <p class="font-semibold text-lg mb-2">{recipe}</p>
-            <button
-              class="mt-2 bg-white hover:bg-red-500 hover:text-white border border-red-500 rounded-full p-2"
-            >
+            <button class="mt-2 bg-white hover:bg-red-500 hover:text-white border border-red-500 rounded-full p-2">
               <i class="fas fa-heart"></i>
             </button>
           </div>
         {/each}
       </div>
-      <button class="p-2 rounded-full border border-gray-300 bg-white">
-        <svg
-          class="w-4 h-4"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M9 5l7 7-7 7"
-          />
+      <button on:click={nextRecipes1} class="p-2 rounded-full border border-gray-300 bg-white">
+        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
       </button>
     </div>
   </div>
 
   <!-- Seasonal Recipes Section -->
-  <div class="seasonal-recipes-section">
-    <h3 class="text-2xl font-semibold mb-4">Seasonal recipes</h3>
-    <div class="flex space-x-4 overflow-x-auto">
-      {#each ["Recipe 1", "Recipe 2", "Recipe 3"] as recipe}
-        <div
-          class="recipe-card border p-4 rounded-lg text-center shadow-md w-40"
-        >
-          <img
-            src="/images/recipe_placeholder.png"
-            alt={recipe}
-            class="w-full h-24 object-cover rounded-md mb-2"
-          />
-          <p class="font-semibold text-lg mb-2">{recipe}</p>
-        </div>
-      {/each}
+  <div class="recipes-with-ingredients-section mb-8 text-left">
+    <h3 class="text-2xl font-semibold mb-4">Seasonal Recipes:</h3>
+    <div class="flex items-center space-x-4 overflow-x-auto">
+      <button on:click={previousRecipes2} class="p-2 rounded-full border border-gray-300 bg-white">
+        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+      <!-- Recipe Cards (Dynamic Data) -->
+      <div class="flex space-x-4">
+        {#each recipes.slice(currentRecipeIndex2, currentRecipeIndex2 + visibleRecipeCount) as recipe}
+          <div class="recipe-card border p-4 rounded-lg text-center shadow-md w-40">
+            <img src="/images/recipe_placeholder.png" alt={recipe} class="w-full h-24 object-cover rounded-md mb-2" />
+            <p class="font-semibold text-lg mb-2">{recipe}</p>
+            <button class="mt-2 bg-white hover:bg-red-500 hover:text-white border border-red-500 rounded-full p-2">
+              <i class="fas fa-heart"></i>
+            </button>
+          </div>
+        {/each}
+      </div>
+      <button on:click={nextRecipes2} class="p-2 rounded-full border border-gray-300 bg-white">
+        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
     </div>
   </div>
 </div>

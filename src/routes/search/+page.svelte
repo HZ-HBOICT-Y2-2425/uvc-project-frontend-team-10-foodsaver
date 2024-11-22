@@ -17,7 +17,7 @@
     let isVegetarian = false; // Checkbox for Vegetarian filter
     let isGlutenFree = false; // Checkbox for Gluten-Free filter
   
-    const API_KEY = '5aae41c17ad940b8a92e9f218de9bdb8'; // Replace with your actual API key
+    const API_KEY = 'ea8bbbce866540469291ee4bef92ec24'; // Replace with your actual API key
   
     // Fetch recipes based on the selected ingredients from query parameters
     onMount(async () => {

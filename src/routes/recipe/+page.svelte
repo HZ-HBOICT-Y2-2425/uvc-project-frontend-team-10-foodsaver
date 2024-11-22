@@ -1,9 +1,19 @@
 <script>
+  import { goto } from "$app/navigation";
+
   export let data;
   const { recipe, error } = data;
 
   let countdowns = [];
   let showModal = false;
+  let isFavorite = false; // 用来追踪爱心状态
+
+  function toggleFavorite() {
+    isFavorite = !isFavorite;
+    if (isFavorite) {
+      goto("/favorite"); // 使用 SvelteKit 的客户端导航
+    }
+  }
 
   function getSteps(instructions) {
     const parser = new DOMParser();
@@ -87,7 +97,15 @@
         </div>
       </div>
       <div class="basis-4/6 bg-gray-100 rounded-lg p-10 lg:mr-8">
-        <h1 class="text-4xl mt-3 mb-3">{recipe.title}</h1>
+        <h1 class="text-4xl mt-3 mb-3">
+          {recipe.title}
+          <img
+            src={isFavorite ? "solid-heart.png" : "blank-heart.png"}
+            alt="Favorite"
+            class="inline-block w-6 h-6 cursor-pointer ml-3"
+            on:click={toggleFavorite}
+          />
+        </h1>
 
         <div class="flex flex-wrap gap-2">
           {#each recipe.dishTypes as type}
@@ -102,10 +120,10 @@
         <div>
           <ul>
             {#each recipe.extendedIngredients as ingredient}
-                <li>{ingredient.original}</li>
+              <li>{ingredient.original}</li>
             {/each}
-        </ul>
-      </div>
+          </ul>
+        </div>
 
         <h2 class="text-4xl mt-3 mb-3">Instructions</h2>
         {#each getSteps(recipe.instructions) as step, index (step)}
@@ -217,5 +235,25 @@
 
   .recipe-card button {
     font-size: 1.1rem;
+  }
+
+  .cursor-pointer {
+    cursor: pointer;
+  }
+
+  .inline-block {
+    display: inline-block;
+  }
+
+  .w-6 {
+    width: 1.5rem; /* 24px */
+  }
+
+  .h-6 {
+    height: 1.5rem; /* 24px */
+  }
+
+  .ml-3 {
+    margin-left: 0.75rem; /* 12px */
   }
 </style>

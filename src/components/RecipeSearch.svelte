@@ -6,76 +6,47 @@
   let searchActive = false;
   let selectedIngredients: string[] = [];
 
+  const recipes = ['Asian bowl', 'Brunch', 'Pancakes', 'Spaghetti', 'Salad', 'Tacos', 'Curry', 'Stew', 'Pizza', 'Soup'];
+  const visibleRecipeCount = 6; // Display 6 cards initially
+
+  let currentRecipeIndex1 = 0;
+  let currentRecipeIndex2 = 0;
+
   // Trigger search function
   const searchRecipes = () => {
     if (!selectedIngredients.length) {
       alert("Please select at least one ingredient to search for recipes.");
     } else {
-      // Redirect to the search results page with the selected ingredients
       const ingredientsParam = selectedIngredients.join(",");
       goto(`/search?ingredients=${ingredientsParam}`);
     }
   };
-</script>
 
-<div class="container mx-auto mt-8 px-6 text-center">
-  <h2 class="text-3xl font-bold text-green-800 italic mb-6">
-    Hello, "username"!
-  </h2>
+  // Recipe navigation functions for first section
+  const previousRecipes1 = () => {
+    if (currentRecipeIndex1 > 0) {
+      currentRecipeIndex1 -= 1; // Move by 1 card at a time
+    }
+  };
 
-  <!-- Search Bar Section -->
-  <div
-    class="search-bar-container flex items-center justify-center w-full relative mb-8"
-  >
-    import { pantry } from '../lib/stores/pantryStore';
-  
-    let searchQuery = "";
-    let searchActive = false;
-    let selectedIngredients: string[] = [];
+  const nextRecipes1 = () => {
+    if (currentRecipeIndex1 + visibleRecipeCount < recipes.length) {
+      currentRecipeIndex1 += 1; // Move by 1 card at a time
+    }
+  };
 
-    // Separate recipe indices for each section
-    let currentRecipeIndex1 = 0;
-    let currentRecipeIndex2 = 0;
+  // Recipe navigation functions for second section
+  const previousRecipes2 = () => {
+    if (currentRecipeIndex2 > 0) {
+      currentRecipeIndex2 -= 1; // Move by 1 card at a time
+    }
+  };
 
-    const recipes = ['Asian bowl', 'Brunch', 'Pancakes', 'Spaghetti', 'Salad', 'Tacos', 'Curry', 'Stew', 'Pizza', 'Soup'];
-    const visibleRecipeCount = 6; // Display 6 cards initially
-
-    // Trigger search function
-    const searchRecipes = () => {
-      if (!selectedIngredients.length) {
-        alert('Please select at least one ingredient to search for recipes.');
-      } else {
-        // Redirect to the search results page with the selected ingredients
-        const ingredientsParam = selectedIngredients.join(',');
-        window.location.href = `/search?ingredients=${ingredientsParam}`;
-      }
-    };
-
-    // Recipe navigation functions for first section
-    const previousRecipes1 = () => {
-      if (currentRecipeIndex1 > 0) {
-        currentRecipeIndex1 -= 1; // Move by 1 card at a time
-      }
-    };
-
-    const nextRecipes1 = () => {
-      if (currentRecipeIndex1 + visibleRecipeCount < recipes.length) {
-        currentRecipeIndex1 += 1; // Move by 1 card at a time
-      }
-    };
-
-    // Recipe navigation functions for second section
-    const previousRecipes2 = () => {
-      if (currentRecipeIndex2 > 0) {
-        currentRecipeIndex2 -= 1; // Move by 1 card at a time
-      }
-    };
-
-    const nextRecipes2 = () => {
-      if (currentRecipeIndex2 + visibleRecipeCount < recipes.length) {
-        currentRecipeIndex2 += 1; // Move by 1 card at a time
-      }
-    };
+  const nextRecipes2 = () => {
+    if (currentRecipeIndex2 + visibleRecipeCount < recipes.length) {
+      currentRecipeIndex2 += 1; // Move by 1 card at a time
+    }
+  };
 </script>
 
 <div class="container mx-auto mt-8 px-6 text-center">

@@ -1,19 +1,35 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
 
-  export let data; // 默认接收 load 返回的数据
-  const { recipe } = data.props; // 解构出 recipe
-  console.log("Recipe data in component:", recipe); // 确保 recipe 是正确的
+  export let data;
+  const { recipe } = data.props;
+  console.log("Recipe data in component:", recipe);
 
-  let isFavorite = false; // 记录是否是收藏
-  let countdowns = []; // 记录倒计时
+  let isFavorite = false;
+  let countdowns = [];
   let showModal = false;
 
-  function toggleFavorite() {
+    // add/ remove the favorite recipe
+    async function toggleFavorite() {
     isFavorite = !isFavorite;
-    if (isFavorite) {
-      goto("/favorite"); // 使用 SvelteKit 的客户端导航
-    }
+
+    const payload = {
+        recipe_id: recipe.id
+    };
+
+    const response = await fetch('http://localhost:3012/favorites', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+          alert("This recipe is collected！");
+          goto("/favorite");  // jump to favorite page
+      } else {
+          const error = await response.json();
+          alert(`Fail to be collected：${error.error}`);
+      }
   }
 
   function getSteps(instructions) {

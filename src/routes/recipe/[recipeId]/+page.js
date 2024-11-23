@@ -1,6 +1,6 @@
 export async function load({ params, fetch }) {
   const { recipeId } = params;
-  const apiKey = "2294333ae4bd4ac684e27677b3c30c63";  // 替换为真实的 API Key
+  const apiKey = "2294333ae4bd4ac684e27677b3c30c63";
 
   try {
     const response = await fetch(`https://api.spoonacular.com/recipes/${recipeId}/information?apiKey=${apiKey}`);
@@ -9,11 +9,11 @@ export async function load({ params, fetch }) {
     }
 
     const recipe = await response.json();
-    console.log('Recipe data from API:', recipe);  // 确保数据从 API 正确返回
+    console.log('Recipe data from API:', recipe);
     console.log('recipeId:', recipeId);
 
     return {
-      props: {  // 确保是 props 包含 recipe 数据
+      props: {
         recipe
       }
     };

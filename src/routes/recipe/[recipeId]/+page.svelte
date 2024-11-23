@@ -5,12 +5,22 @@
   const { recipe } = data.props;
   console.log("Recipe data in component:", recipe);
 
-  let isFavorite = false;
+  let isFavorite = false; // 用于保存收藏状态
   let countdowns = [];
   let showModal = false;
 
-    // add/ remove the favorite recipe
-    async function toggleFavorite() {
+  // 在页面加载时检查收藏状态
+  async function checkFavoriteStatus() {
+    const response = await fetch(`http://localhost:3012/check-favorite/${recipe.id}`);
+    const data = await response.json();
+    isFavorite = data.isFavorite; // 更新收藏状态
+  }
+
+  // 页面加载时检查收藏状态
+  checkFavoriteStatus();
+
+  // add/remove favorite recipe
+  async function toggleFavorite() {
     isFavorite = !isFavorite;
 
     const payload = {
@@ -113,7 +123,7 @@
         <h1 class="text-4xl mt-3 mb-3">
           {recipe.title}
           <img
-            src={isFavorite ? "static/solid-heart.png" : "static/blank-heart.png"}
+            src={isFavorite ? "/solid-heart.png" : "/blank-heart.png"}
             alt="Favorite"
             class="inline-block w-6 h-6 cursor-pointer ml-3"
             on:click={toggleFavorite}

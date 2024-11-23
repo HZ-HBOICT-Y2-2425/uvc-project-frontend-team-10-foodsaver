@@ -5,41 +5,51 @@
   const { recipe } = data.props;
   console.log("Recipe data in component:", recipe);
 
-  let isFavorite = false; // 用于保存收藏状态
+  let isFavorite = false;
   let countdowns = [];
   let showModal = false;
 
-  // 在页面加载时检查收藏状态
   async function checkFavoriteStatus() {
     const response = await fetch(`http://localhost:3012/check-favorite/${recipe.id}`);
     const data = await response.json();
-    isFavorite = data.isFavorite; // 更新收藏状态
+    isFavorite = data.isFavorite;
   }
 
-  // 页面加载时检查收藏状态
   checkFavoriteStatus();
 
-  // add/remove favorite recipe
   async function toggleFavorite() {
-    isFavorite = !isFavorite;
-
-    const payload = {
-        recipe_id: recipe.id
-    };
-
-    const response = await fetch('http://localhost:3012/favorites', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+    if (isFavorite) {
+      const response = await fetch(`http://localhost:3012/favorites/${recipe.id}`, {
+        method: 'DELETE',
       });
 
       if (response.ok) {
-          alert("This recipe is collected！");
-          goto("/favorite");  // jump to favorite page
+        alert("This recipe is removed from favorites");
+        isFavorite = false;
       } else {
-          const error = await response.json();
-          alert(`Fail to be collected：${error.error}`);
+        const error = await response.json();
+        alert(`Failed to remove from favorites: ${error.error}`);
       }
+    } else {
+      const payload = { recipe_id: recipe.id };
+      const response = await fetch('http://localhost:3012/favorites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        alert("This recipe is added to favorites");
+        isFavorite = true;
+      } else {
+        const error = await response.json();
+        alert(`Failed to add to favorites: ${error.error}`);
+      }
+    }
+
+  goto("/favorite");
+
+    checkFavoriteStatus();
   }
 
   function getSteps(instructions) {

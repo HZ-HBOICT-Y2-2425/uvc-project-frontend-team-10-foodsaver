@@ -42,7 +42,9 @@
       }
 
       try {
-          const response = await fetch('http://localhost/backend/login.php', {
+          const API_BASE_URL = 'http://localhost/food-saver-login-backend/src';
+
+          const response = await fetch(`${API_BASE_URL}/login.php`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ username, password }),

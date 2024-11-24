@@ -66,6 +66,7 @@
   }
 
   async function handleRegister() {
+    console.log("Payload being sent:", { username, email, password });
     const errorBox = document.getElementById('error-box');
     const successBox = document.getElementById('success-box');
     const errorText = document.getElementById('error-text');
@@ -83,7 +84,9 @@
     }
 
     try {
-        const response = await fetch('http://localhost/backend/register.php', {
+        const API_BASE_URL = 'http://localhost/food-saver-login-backend/src';
+
+        const response = await fetch(`${API_BASE_URL}/register.php`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, email, password }),

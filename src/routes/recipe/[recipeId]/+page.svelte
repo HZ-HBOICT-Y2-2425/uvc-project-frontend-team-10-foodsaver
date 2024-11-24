@@ -1,9 +1,56 @@
-<script>
-  export let data;
-  const { recipe, error } = data;
+<script lang="ts">
+  import { goto } from "$app/navigation";
 
+  export let data;
+  const { recipe } = data.props;
+  console.log("Recipe data in component:", recipe);
+
+  let isFavorite = false;
   let countdowns = [];
   let showModal = false;
+
+  async function checkFavoriteStatus() {
+    const response = await fetch(`http://localhost:3012/check-favorite/${recipe.id}`);
+    const data = await response.json();
+    isFavorite = data.isFavorite;
+  }
+
+  checkFavoriteStatus();
+
+  async function toggleFavorite() {
+    if (isFavorite) {
+      const response = await fetch(`http://localhost:3012/favorites/${recipe.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        alert("This recipe is removed from favorites");
+        isFavorite = false;
+      } else {
+        const error = await response.json();
+        alert(`Failed to remove from favorites: ${error.error}`);
+      }
+    } else {
+      const payload = { recipe_id: recipe.id };
+      const response = await fetch('http://localhost:3012/favorites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        alert("This recipe is added to favorites");
+        isFavorite = true;
+      } else {
+        const error = await response.json();
+        alert(`Failed to add to favorites: ${error.error}`);
+      }
+    }
+
+  goto("/favorite");
+
+    checkFavoriteStatus();
+  }
 
   function getSteps(instructions) {
     const parser = new DOMParser();
@@ -62,11 +109,7 @@
   }
 </script>
 
-{#if error}
-  <p class="error">{error}</p>
-{:else if !recipe}
-  <p>Loading...</p>
-{:else}
+{#if recipe}
   <div class="container w-full mx-auto">
     <section class="flex flex-col lg:flex-row mt-5">
       <div class="basis-2/6 bg-gray-100 rounded-lg p-10 lg:mr-8">
@@ -87,7 +130,15 @@
         </div>
       </div>
       <div class="basis-4/6 bg-gray-100 rounded-lg p-10 lg:mr-8">
-        <h1 class="text-4xl mt-3 mb-3">{recipe.title}</h1>
+        <h1 class="text-4xl mt-3 mb-3">
+          {recipe.title}
+          <img
+            src={isFavorite ? "/solid-heart.png" : "/blank-heart.png"}
+            alt="Favorite"
+            class="inline-block w-6 h-6 cursor-pointer ml-3"
+            on:click={toggleFavorite}
+          />
+        </h1>
 
         <div class="flex flex-wrap gap-2">
           {#each recipe.dishTypes as type}
@@ -102,10 +153,10 @@
         <div>
           <ul>
             {#each recipe.extendedIngredients as ingredient}
-                <li>{ingredient.original}</li>
+              <li>{ingredient.original}</li>
             {/each}
-        </ul>
-      </div>
+          </ul>
+        </div>
 
         <h2 class="text-4xl mt-3 mb-3">Instructions</h2>
         {#each getSteps(recipe.instructions) as step, index (step)}
@@ -170,14 +221,11 @@
       </div>
     </div>
   {/if}
+{:else}
+  <p>Loading...</p>
 {/if}
 
 <style>
-  .error {
-    color: red;
-    font-weight: bold;
-  }
-
   .fixed {
     position: fixed;
   }

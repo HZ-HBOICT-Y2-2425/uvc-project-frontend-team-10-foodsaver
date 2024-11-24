@@ -1,53 +1,52 @@
 <script lang="ts">
-    import { pantry } from '../lib/stores/pantryStore';
-  
-    let searchQuery = "";
-    let searchActive = false;
-    let selectedIngredients: string[] = [];
+  import { pantry } from "../lib/stores/pantryStore";
+  import { goto } from "$app/navigation";
 
-    // Separate recipe indices for each section
-    let currentRecipeIndex1 = 0;
-    let currentRecipeIndex2 = 0;
+  let searchQuery = "";
+  let searchActive = false;
+  let selectedIngredients: string[] = [];
 
-    const recipes = ['Asian bowl', 'Brunch', 'Pancakes', 'Spaghetti', 'Salad', 'Tacos', 'Curry', 'Stew', 'Pizza', 'Soup'];
-    const visibleRecipeCount = 6; // Display 6 cards initially
+  const recipes = ['Asian bowl', 'Brunch', 'Pancakes', 'Spaghetti', 'Salad', 'Tacos', 'Curry', 'Stew', 'Pizza', 'Soup'];
+  const visibleRecipeCount = 6; // Display 6 cards initially
 
-    // Trigger search function
-    const searchRecipes = () => {
-      if (!selectedIngredients.length) {
-        alert('Please select at least one ingredient to search for recipes.');
-      } else {
-        // Redirect to the search results page with the selected ingredients
-        const ingredientsParam = selectedIngredients.join(',');
-        window.location.href = `/search?ingredients=${ingredientsParam}`;
-      }
-    };
+  let currentRecipeIndex1 = 0;
+  let currentRecipeIndex2 = 0;
 
-    // Recipe navigation functions for first section
-    const previousRecipes1 = () => {
-      if (currentRecipeIndex1 > 0) {
-        currentRecipeIndex1 -= 1; // Move by 1 card at a time
-      }
-    };
+  // Trigger search function
+  const searchRecipes = () => {
+    if (!selectedIngredients.length) {
+      alert("Please select at least one ingredient to search for recipes.");
+    } else {
+      const ingredientsParam = selectedIngredients.join(",");
+      goto(`/search?ingredients=${ingredientsParam}`);
+    }
+  };
 
-    const nextRecipes1 = () => {
-      if (currentRecipeIndex1 + visibleRecipeCount < recipes.length) {
-        currentRecipeIndex1 += 1; // Move by 1 card at a time
-      }
-    };
+  // Recipe navigation functions for first section
+  const previousRecipes1 = () => {
+    if (currentRecipeIndex1 > 0) {
+      currentRecipeIndex1 -= 1; // Move by 1 card at a time
+    }
+  };
 
-    // Recipe navigation functions for second section
-    const previousRecipes2 = () => {
-      if (currentRecipeIndex2 > 0) {
-        currentRecipeIndex2 -= 1; // Move by 1 card at a time
-      }
-    };
+  const nextRecipes1 = () => {
+    if (currentRecipeIndex1 + visibleRecipeCount < recipes.length) {
+      currentRecipeIndex1 += 1; // Move by 1 card at a time
+    }
+  };
 
-    const nextRecipes2 = () => {
-      if (currentRecipeIndex2 + visibleRecipeCount < recipes.length) {
-        currentRecipeIndex2 += 1; // Move by 1 card at a time
-      }
-    };
+  // Recipe navigation functions for second section
+  const previousRecipes2 = () => {
+    if (currentRecipeIndex2 > 0) {
+      currentRecipeIndex2 -= 1; // Move by 1 card at a time
+    }
+  };
+
+  const nextRecipes2 = () => {
+    if (currentRecipeIndex2 + visibleRecipeCount < recipes.length) {
+      currentRecipeIndex2 += 1; // Move by 1 card at a time
+    }
+  };
 </script>
 
 <div class="container mx-auto mt-8 px-6 text-center">
@@ -63,7 +62,10 @@
         on:focus={() => (searchActive = true)}
         class="w-full p-4 pl-4 rounded-md shadow-md border border-gray-200 focus:outline-none focus:border-green-500"
       />
-      <button on:click={searchRecipes} class="absolute right-4 top-1/2 transform -translate-y-1/2">
+      <button
+        on:click={searchRecipes}
+        class="absolute right-4 top-1/2 transform -translate-y-1/2"
+      >
         <svg
           class="w-6 h-6 text-gray-500 hover:text-green-500"
           fill="none"
@@ -82,7 +84,9 @@
 
       <!-- Dropdown for pantry items -->
       {#if searchActive}
-        <div class="dropdown absolute top-full left-0 mt-2 bg-white shadow-md border border-gray-200 rounded-md w-full z-50 p-4">
+        <div
+          class="dropdown absolute top-full left-0 mt-2 bg-white shadow-md border border-gray-200 rounded-md w-full z-50 p-4"
+        >
           <h3 class="font-bold mb-2">Select Ingredients</h3>
           <ul>
             {#each $pantry as item}
@@ -99,7 +103,11 @@
       {/if}
     </div>
 
-    <button class="ml-4 px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring focus:ring-green-300">
+    <!-- jump to favorite page -->
+    <button
+      class="ml-4 px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring focus:ring-green-300"
+      on:click={() => goto("/favorite")}
+    >
       Favourites
     </button>
   </div>

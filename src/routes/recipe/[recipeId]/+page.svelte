@@ -6,8 +6,14 @@
   console.log("Recipe data in component:", recipe);
 
   let isFavorite = false;
-  let countdowns = [];
+  let countdowns: Countdown[] = [];
   let showModal = false;
+
+  interface Countdown {
+    time: number; // Remaining time
+    interval: NodeJS.Timeout | null; // Interval reference
+    input: number; // User-entered time in seconds
+  }
 
   async function checkFavoriteStatus() {
     const response = await fetch(`http://localhost:3012/check-favorite/${recipe.id}`);
@@ -20,7 +26,7 @@
   async function toggleFavorite() {
     if (isFavorite) {
       const response = await fetch(`http://localhost:3012/favorites/${recipe.id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       if (response.ok) {
@@ -32,9 +38,9 @@
       }
     } else {
       const payload = { recipe_id: recipe.id };
-      const response = await fetch('http://localhost:3012/favorites', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("http://localhost:3012/favorites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
@@ -47,12 +53,12 @@
       }
     }
 
-  goto("/favorite");
+    goto("/favorite");
 
     checkFavoriteStatus();
   }
 
-  function getSteps(instructions) {
+  function getSteps(instructions: string) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(instructions, "text/html");
     const textContent = doc.body.textContent || "";
@@ -63,11 +69,14 @@
       .filter((step) => step !== "");
   }
 
-  function containsTime(step) {
+  function containsTime(step: string) {
     return /\b(minutes?|hours?|seconds?|mins?)\b/i.test(step);
   }
 
-  function startCountdown(index, timeInSeconds) {
+  function startCountdown(index: number, timeInSeconds: number) {
+    if (timeInSeconds <= 0) return; // Prevent invalid timer input
+
+    // Initialize countdown object
     if (!countdowns[index]) {
       countdowns[index] = {
         time: timeInSeconds,
@@ -76,28 +85,33 @@
       };
     }
 
-    if (countdowns[index]?.interval) clearInterval(countdowns[index].interval);
+    // Clear any existing interval
+    if (countdowns[index]?.interval) {
+      clearInterval(countdowns[index].interval);
+    }
 
-    let time = timeInSeconds;
-    const interval = setInterval(() => {
-      countdowns = countdowns.map((cd, i) =>
-        i === index ? { ...cd, time: --time } : cd,
-      );
-      if (time <= 0) {
-        clearInterval(interval);
-        showTimeUpModal();
+    // Start new countdown
+    countdowns[index].time = timeInSeconds;
+    countdowns[index].interval = setInterval(() => {
+      if (countdowns[index].time > 0) {
+        countdowns[index].time -= 1; // Decrement timer
+        countdowns = [...countdowns]; // Trigger reactivity
+      } else {
+        clearInterval(countdowns[index].interval!); // Stop timer
+        countdowns[index].interval = null;
+        showTimeUpModal(); // Show modal when time is up
       }
     }, 1000);
 
-    countdowns = countdowns.map((cd, i) =>
-      i === index ? { time, interval } : cd,
-    );
+    countdowns = [...countdowns]; // Trigger reactivity
   }
 
-  function updateCountdownInput(index, value) {
-    countdowns = countdowns.map((cd, i) =>
-      i === index ? { ...cd, input: value } : cd,
-    );
+  function updateCountdownInput(index: number, value: string) {
+    countdowns[index] = {
+      ...countdowns[index],
+      input: Number(value),
+    };
+    countdowns = [...countdowns]; // Trigger reactivity
   }
 
   function showTimeUpModal() {
@@ -187,6 +201,12 @@
                   <p class="text-gray-700">
                     Time left: {countdowns[index].time}s
                   </p>
+                {:else if countdowns[index]?.input}
+                  <p class="text-gray-700">
+                    Time left: {countdowns[index].input}s
+                  </p>
+                {:else}
+                  <p class="text-gray-700">Time left: s</p>
                 {/if}
               </div>
             {/if}

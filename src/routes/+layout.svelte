@@ -10,9 +10,12 @@
   
   <!-- Navigation Bar -->
   <nav class="w-full bg-white shadow-md p-4 flex justify-between items-center">
+    <!-- Logo Section -->
     <div class="logo flex items-center space-x-2">
       <h1 class="text-2xl font-bold text-green-600 italic">FoodSaver</h1>
     </div>
+  
+    <!-- Desktop Navigation Links -->
     <div class="nav-links hidden md:flex space-x-6">
       <a href="/" class="text-gray-800 hover:text-green-500 text-lg">Home</a>
       <a href="/search" class="text-gray-800 hover:text-green-500 text-lg">About Us</a>
@@ -20,10 +23,23 @@
       <a href="/pantry" class="text-gray-800 hover:text-green-500 text-lg">My Pantry</a>
       <a href="/profile" class="text-gray-800 hover:text-green-500 text-lg">Profile</a>
     </div>
+  
+    <!-- Mobile Menu Button -->
     <div class="md:hidden">
       <button class="text-gray-800 focus:outline-none" on:click="{toggleMenu}">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+        <svg
+          class="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M4 6h16M4 12h16m-7 6h7"
+          ></path>
         </svg>
       </button>
     </div>
@@ -31,12 +47,12 @@
   
   <!-- Mobile Navigation Menu -->
   {#if isMenuOpen}
-    <div id="mobile-menu" class="md:hidden w-full bg-white shadow-md p-4">
-      <a href="/" class="block text-gray-800 hover:text-green-500 text-lg mb-2">Home</a>
-      <a href="/about" class="block text-gray-800 hover:text-green-500 text-lg mb-2">About Us</a>
-      <a href="/tips" class="block text-gray-800 hover:text-green-500 text-lg mb-2">Tips & Tricks</a>
-      <a href="/pantry" class="block text-gray-800 hover:text-green-500 text-lg mb-2">My Pantry</a>
-      <a href="/profile" class="block text-gray-800 hover:text-green-500 text-lg mb-2">Profile</a>
+    <div id="mobile-menu" class="md:hidden w-full bg-white shadow-md p-4 space-y-2">
+      <a href="/" class="block text-gray-800 hover:text-green-500 text-lg">Home</a>
+      <a href="/about" class="block text-gray-800 hover:text-green-500 text-lg">About Us</a>
+      <a href="/tips" class="block text-gray-800 hover:text-green-500 text-lg">Tips & Tricks</a>
+      <a href="/pantry" class="block text-gray-800 hover:text-green-500 text-lg">My Pantry</a>
+      <a href="/profile" class="block text-gray-800 hover:text-green-500 text-lg">Profile</a>
     </div>
   {/if}
   
@@ -48,9 +64,10 @@
   
     <!-- Footer -->
     <footer class="w-full bg-gray-100 shadow-inner py-8 text-center">
-      <div class="footer-content container mx-auto px-6 md:flex md:justify-between md:items-center space-y-4 md:space-y-0">
-        
-        <!-- Left Side: Links Section -->
+      <div
+        class="footer-content container mx-auto px-6 flex flex-col md:flex-row md:justify-between md:items-center space-y-4 md:space-y-0"
+      >
+        <!-- Quick Links -->
         <div class="footer-links text-left space-y-2">
           <h3 class="font-bold text-lg text-gray-800">Quick Links</h3>
           <ul class="space-y-1">
@@ -62,35 +79,56 @@
           </ul>
         </div>
   
-        <!-- Center: Logo and Description -->
-        <div class="footer-logo md:text-center">
+        <!-- Logo and Description -->
+        <div class="footer-logo text-center md:text-left">
           <h1 class="text-2xl font-bold text-green-600 italic">FoodSaver</h1>
           <p class="text-gray-700 mt-2">
-            Helping you make the most of your food, save money, and reduce waste. Let's make sustainability simple.
+            Helping you make the most of your food, save money, and reduce waste.
+            Let's make sustainability simple.
           </p>
         </div>
   
-        <!-- Right Side: Social Media Section -->
+        <!-- Social Media -->
         <div class="footer-social text-left md:text-right space-y-2">
           <h3 class="font-bold text-lg text-gray-800">Follow Us</h3>
           <div class="social-icons flex space-x-4 justify-center md:justify-end">
-            <a href="https://facebook.com" class="text-gray-600 hover:text-blue-600" target="_blank" rel="noopener noreferrer">
+            <a
+              href="https://facebook.com"
+              class="text-gray-600 hover:text-blue-600"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <i class="fab fa-facebook fa-2x"></i>
             </a>
-            <a href="https://twitter.com" class="text-gray-600 hover:text-blue-400" target="_blank" rel="noopener noreferrer">
+            <a
+              href="https://twitter.com"
+              class="text-gray-600 hover:text-blue-400"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <i class="fab fa-twitter fa-2x"></i>
             </a>
-            <a href="https://instagram.com" class="text-gray-600 hover:text-pink-500" target="_blank" rel="noopener noreferrer">
+            <a
+              href="https://instagram.com"
+              class="text-gray-600 hover:text-pink-500"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <i class="fab fa-instagram fa-2x"></i>
             </a>
-            <a href="https://linkedin.com" class="text-gray-600 hover:text-blue-700" target="_blank" rel="noopener noreferrer">
+            <a
+              href="https://linkedin.com"
+              class="text-gray-600 hover:text-blue-700"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <i class="fab fa-linkedin fa-2x"></i>
             </a>
           </div>
         </div>
       </div>
   
-      <!-- Bottom: Copyright Notice -->
+      <!-- Copyright -->
       <div class="mt-6 border-t border-gray-300 pt-4">
         <p class="text-gray-600">© 2024 FoodSaver. All rights reserved.</p>
       </div>
@@ -101,7 +139,7 @@
     footer {
       background: #f9fafb;
       box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.05);
-      font-family: 'Arial', sans-serif;
+      font-family: "Arial", sans-serif;
     }
   
     .footer-links ul {
@@ -129,6 +167,15 @@
   
     main {
       flex-grow: 1;
+    }
+  
+    .logo h1 {
+      font-size: 1.5rem;
+    }
+  
+    .nav-links a,
+    #mobile-menu a {
+      transition: color 0.3s;
     }
   </style>
   

@@ -84,9 +84,9 @@
     }
 
     try {
-        const API_BASE_URL = 'http://localhost/food-saver-login-backend/src';
+      const API_BASE_URL = 'http://localhost:4000/api/users';
 
-        const response = await fetch(`${API_BASE_URL}/register.php`, {
+        const response = await fetch(`${API_BASE_URL}/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, email, password }),

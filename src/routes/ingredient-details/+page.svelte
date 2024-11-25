@@ -1,57 +1,54 @@
-<script lang="ts">
-    import { pantry } from '../../lib/stores/pantryStore';
-    import { writable } from 'svelte/store';
-  
-    let ingredientName = writable<string>('');
-    let weight = writable<number>(0);
-    let expirationDate = writable<string>('');
-  
-    const addIngredientDetails = (): void => {
-      pantry.update((items) => {
-        const newItems = [...items];
+<script>
+  import { pantry } from '../../lib/stores/pantryStore';
+  import { writable, get } from 'svelte/store';
+
+  // Retrieve selected ingredients from the previous screen
+  import { selectedIngredients } from '../../lib/stores/selectedIngredientsStore';
+
+  let ingredients = get(selectedIngredients).map(name => ({
+    name,
+    weight: writable(0),
+    expirationDate: writable('')
+  }));
+
+  const saveIngredients = () => {
+    pantry.update((items) => {
+      const newItems = [...items];
+      ingredients.forEach(ingredient => {
         newItems.push({
-          name: $ingredientName,
-          weight: $weight,
-          expirationDate: $expirationDate
+          name: ingredient.name,
+          weight: get(ingredient.weight),
+          expirationDate: get(ingredient.expirationDate)
         });
-        return newItems;
       });
-      ingredientName.set('');
-      weight.set(0);
-      expirationDate.set('');
-    };
-  </script>
+      return newItems;
+    });
+    // Clear selected ingredients after saving
+    selectedIngredients.set([]);
+  };
+</script>
+
+<div class="p-4 max-w-3xl mx-auto bg-white shadow-md rounded-lg">
+  <h2 class="text-2xl font-bold text-green-600 mb-4">Set Ingredient Details</h2>
   
-  <div class="p-4 max-w-3xl mx-auto bg-white shadow-md rounded-lg">
-    <h2 class="text-2xl font-bold text-green-600 mb-4">Add Ingredient Details</h2>
-    
-    <div class="mb-4">
-      <input
-        type="text"
-        bind:value={$ingredientName}
-        placeholder="Ingredient Name"
-        class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
-      />
-    </div>
-    
-    <div class="mb-4">
+  {#each ingredients as ingredient}
+    <div class="mb-4 flex items-center">
+      <span class="w-1/3">{ingredient.name}</span>
       <input
         type="number"
-        bind:value={$weight}
+        bind:value={ingredient.weight}
         placeholder="Weight (grams)"
-        class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+        class="w-1/3 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
       />
-    </div>
-    
-    <div class="mb-4">
       <input
         type="date"
-        bind:value={$expirationDate}
-        class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+        bind:value={ingredient.expirationDate}
+        class="w-1/3 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
       />
     </div>
-    
-    <button on:click={addIngredientDetails} class="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600">
-      Add Ingredient
-    </button>
-  </div>
+  {/each}
+
+  <button on:click={saveIngredients} class="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600">
+    Save
+  </button>
+</div>

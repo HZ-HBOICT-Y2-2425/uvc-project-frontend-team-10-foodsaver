@@ -1,12 +1,13 @@
-<script lang="ts">
+<script>
   import { pantry } from '../lib/stores/pantryStore';
   import { onMount } from 'svelte';
   import { writable, derived } from 'svelte/store';
+  import { selectedIngredients } from '../lib/stores/selectedIngredientsStore';
+  import { goto } from '$app/navigation';
 
-  let ingredients = writable<string[]>([]);
-  let selectedIngredients = writable<string[]>([]);
-  let searchQuery = writable<string>('');
-  let currentPage = writable<number>(1);
+  let ingredients = writable([]);
+  let searchQuery = writable('');
+  let currentPage = writable(1);
   const itemsPerPage = 10;
 
   const API_KEY = 'ea8bbbce866540469291ee4bef92ec24'; // Replace with your actual API key
@@ -18,7 +19,7 @@
       if (response.ok) {
         const data = await response.json();
         console.log('Fetched ingredients:', data.results); // Debugging log
-        ingredients.set(data.results.map((ingredient: any) => ingredient.name));
+        ingredients.set(data.results.map(ingredient => ingredient.name));
       } else {
         console.error('Failed to fetch ingredients:', response.statusText);
       }
@@ -41,22 +42,6 @@
     return $filteredIngredients.slice(start, end);
   });
 
-  // Add selected ingredients to the pantry
-  const addSelectedIngredients = (): void => {
-    selectedIngredients.update((selected) => {
-      pantry.update((items) => {
-        const newItems = [...items];
-        selected.forEach((ingredient) => {
-          if (!newItems.includes(ingredient)) {
-            newItems.push(ingredient);
-          }
-        });
-        return newItems;
-      });
-      return [];
-    });
-  };
-
   // Navigate to the next page
   const nextPage = () => {
     currentPage.update(n => n + 1);
@@ -65,6 +50,11 @@
   // Navigate to the previous page
   const prevPage = () => {
     currentPage.update(n => Math.max(n - 1, 1));
+  };
+
+  // Redirect to the ingredient details view
+  const continueToDetails = () => {
+    goto('/ingredient-details');
   };
 </script>
 
@@ -105,7 +95,7 @@
     </button>
   </div>
 
-  <button on:click={addSelectedIngredients} class="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600">
-    Add Selected Ingredients
+  <button on:click={continueToDetails} class="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600">
+    Continue
   </button>
 </div>

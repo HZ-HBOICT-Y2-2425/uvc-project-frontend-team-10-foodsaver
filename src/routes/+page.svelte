@@ -1,7 +1,6 @@
 <script>
-  import RecipeSearch from '../components/RecipeSearch.svelte';
-  import Pantry from '../components/Pantry.svelte';
-  
+  import RecipeSearch from "../components/RecipeSearch.svelte";
+  import Pantry from "../components/Pantry.svelte";
 </script>
 
 <div class="main-content mt-4 flex-1 flex">

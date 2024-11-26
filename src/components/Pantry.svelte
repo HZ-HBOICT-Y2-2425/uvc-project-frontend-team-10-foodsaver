@@ -9,6 +9,8 @@
   let ingredientsList = writable<string[]>([]);
   let addManually = writable<boolean>(false);
   let selectedIngredient = writable<string>("");
+  let editMode = writable<boolean>(false);
+  let editIndex = writable<number | null>(null);
 
   const API_KEY = "ea8bbbce866540469291ee4bef92ec24"; // Replace with your actual API key
 
@@ -48,11 +50,42 @@
     addManually.set(false);
   };
 
-  // Remove ingredient from pantry store
+  const editIngredientDetails = (index: number): void => {
+    editIndex.set(index);
+    const item = $pantry[index];
+    selectedIngredient.set(item.name);
+    weight.set(item.weight);
+    expirationDate.set(item.expirationDate);
+    editMode.set(true);
+  };
+
+  const saveEditedIngredientDetails = (): void => {
+    pantry.update((items) => {
+      const newItems = [...items];
+      const index = $editIndex;
+      if (index !== null) {
+        newItems[index] = {
+          name: $selectedIngredient,
+          weight: $weight,
+          expirationDate: $expirationDate,
+        };
+      }
+      return newItems;
+    });
+    ingredient.set("");
+    weight.set(0);
+    expirationDate.set("");
+    editMode.set(false);
+    editIndex.set(null);
+  };
+
+// Remove ingredient from pantry store 
   const removeIngredient = (itemName: string): void => {
     pantry.update((items) => items.filter((item) => item.name !== itemName));
   };
 </script>
+
+
 
 <!-- Leafs picture -->
 <img
@@ -84,7 +117,7 @@
 
   <!-- Pantry Ingredients List (Circular) -->
   <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 mb-6">
-    {#each $pantry as item (item.name)}
+    {#each $pantry as item, index (item.name + item.expirationDate + index)}
       <div class="flex flex-col items-center space-y-2">
         <!-- Ingredient Circle with Placeholder Image -->
         <div
@@ -110,18 +143,27 @@
         >
           Remove
         </button>
+        <!-- Edit Button -->
+        <button
+          on:click={() => editIngredientDetails(index)}
+          class="bg-blue-500 text-white px-3 py-1 text-xs rounded-full hover:bg-blue-600"
+        >
+          Edit
+        </button>
       </div>
     {/each}
   </div>
 </div>
 
-<!-- Add Ingredients Manually -->
-{#if $addManually}
+<!-- Add/Edit Ingredients Manually -->
+{#if $addManually || $editMode}
   <div
     class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
   >
     <div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
-      <h2 class="text-2xl font-bold text-green-600 mb-4">Add an Ingredient</h2>
+      <h2 class="text-2xl font-bold text-green-600 mb-4">
+        {#if $editMode} Edit Ingredient {:else} Add an Ingredient {/if}
+      </h2>
       <div class="mb-4">
         <input
           type="string"
@@ -147,13 +189,13 @@
       </div>
       <div class="flex justify-end space-x-4">
         <button
-          on:click={() => addManually.set(false)}
+          on:click={() => { addManually.set(false); editMode.set(false); }}
           class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
         >
           Cancel
         </button>
         <button
-          on:click={saveIngredientDetails}
+          on:click={() => { $editMode ? saveEditedIngredientDetails() : saveIngredientDetails(); }}
           class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
         >
           Save

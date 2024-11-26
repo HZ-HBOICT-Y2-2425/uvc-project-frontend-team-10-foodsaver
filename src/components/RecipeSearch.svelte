@@ -136,7 +136,7 @@
                     >
                         <h3 class="font-bold mb-2">Select Ingredients</h3>
                         <ul>
-                            {#each $nearestExpiringIngredients as item, index (item.id || index)}
+                            {#each $pantry as item, index (item.id ? item.id : index)}
                                 <li class="flex items-center mb-2">
                                     <label class="flex items-center space-x-2">
                                         <input
@@ -175,24 +175,26 @@
         <h3 class="text-2xl font-semibold mb-4">Ingredients Expiring Soon</h3>
         <div class="flex items-center space-x-4 overflow-x-auto">
             {#each $nearestExpiringIngredients as item, index (item.id || index)}
-                <div class="flex flex-col items-center space-y-2">
-                    <div
-                        class="bg-gray-200 w-20 h-20 rounded-full flex items-center justify-center"
-                    >
-                        <img
-                            src="/images/ingredient_placeholder.png"
-                            alt={item.name}
-                            class="w-12 h-12 object-cover"
-                        />
+                {#if (new Date(item.expirationDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24) <= 3}
+                    <div class="flex flex-col items-center space-y-2">
+                        <div
+                            class="bg-gray-200 w-20 h-20 rounded-full flex items-center justify-center"
+                        >
+                            <img
+                                src="/images/ingredient_placeholder.png"
+                                alt={item.name}
+                                class="w-12 h-12 object-cover"
+                            />
+                        </div>
+                        <span class="text-gray-700 text-sm">{item.name}</span>
+                        <span class="text-gray-500 text-xs"
+                            >Weight: {item.weight}g</span
+                        >
+                        <span class="text-gray-500 text-xs"
+                            >Expires: {item.expirationDate}</span
+                        >
                     </div>
-                    <span class="text-gray-700 text-sm">{item.name}</span>
-                    <span class="text-gray-500 text-xs"
-                        >Weight: {item.weight}g</span
-                    >
-                    <span class="text-gray-500 text-xs"
-                        >Expires: {item.expirationDate}</span
-                    >
-                </div>
+                {/if}
             {/each}
         </div>
     </div>

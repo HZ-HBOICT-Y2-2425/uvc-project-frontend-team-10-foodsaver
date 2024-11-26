@@ -1,6 +1,12 @@
 import { writable } from 'svelte/store';
 
-const defaultPantry = ['onion', 'garlic', 'salt', 'pepper']; // Default pantry items
+const defaultPantry = [
+  { name: 'onion', weight: 100, expirationDate: '2024-01-01' },
+  { name: 'garlic', weight: 50, expirationDate: '2024-01-05' },
+  { name: 'salt', weight: 200, expirationDate: '2025-01-01' },
+  { name: 'pepper', weight: 30, expirationDate: '2024-02-01' }
+]; // Default pantry items with weight and expiration date
+
 let storedPantry;
 
 if (typeof window !== 'undefined') {

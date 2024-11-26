@@ -1,59 +1,164 @@
 <script lang="ts">
-    import { pantry } from '../lib/stores/pantryStore';
-  
-    let ingredient: string = '';
-  
-    const addIngredient = (): void => {
-      if (ingredient.trim()) {
-        pantry.update((items: string[]) => {
-          if (!items.includes(ingredient.trim())) {
-            return [...items, ingredient.trim()];
-          } else {
-            alert(`${ingredient.trim()} is already in your pantry!`);
-            return items;
-          }
-        });
-        ingredient = ''; // Clear the input field
+  import { pantry } from "../lib/stores/pantryStore";
+  import { onMount } from "svelte";
+  import { writable } from "svelte/store";
+
+  let ingredient = writable<string>("");
+  let weight = writable<number>(0);
+  let expirationDate = writable<string>("");
+  let ingredientsList = writable<string[]>([]);
+  let addManually = writable<boolean>(false);
+  let selectedIngredient = writable<string>("");
+
+  const API_KEY = "ea8bbbce866540469291ee4bef92ec24"; // Replace with your actual API key
+
+  // Fetch ingredients from the API
+  onMount(async () => {
+    try {
+      const response = await fetch(
+        `https://api.spoonacular.com/food/ingredients/search?apiKey=${API_KEY}&number=100`,
+      );
+      if (response.ok) {
+        const data = await response.json();
+        ingredientsList.set(
+          data.results.map((ingredient: { name: string }) => ingredient.name),
+        );
+      } else {
+        console.error("Failed to fetch ingredients:", response.statusText);
       }
-    };
-  
-    const removeIngredient = (item: string): void => {
-      pantry.update((items: string[]) => items.filter((existingItem) => existingItem !== item));
-    };
-  </script>
-  
-  <div class="pantry">
-    <h2>My Pantry</h2>
-    <ul>
-      {#each $pantry as item}
-        <li>
-          {item}
-          <button on:click={() => removeIngredient(item)} class="button-small">Remove</button>
-        </li>
-      {/each}
-    </ul>
-  
-    <h3>Add Ingredients</h3>
-    <input type="text" bind:value={ingredient} placeholder="Add an ingredient" class="input" />
-    <button on:click={addIngredient} class="button">Add</button>
+    } catch (error) {
+      console.error("Error fetching ingredients:", error);
+    }
+  });
+
+  // Save ingredient details
+  const saveIngredientDetails = (): void => {
+    pantry.update((items) => {
+      const newItems = [...items];
+      newItems.push({
+        name: $selectedIngredient,
+        weight: $weight,
+        expirationDate: $expirationDate,
+      });
+      return newItems;
+    });
+    ingredient.set("");
+    weight.set(0);
+    expirationDate.set("");
+    addManually.set(false);
+  };
+
+  // Remove ingredient from pantry store
+  const removeIngredient = (itemName: string): void => {
+    pantry.update((items) => items.filter((item) => item.name !== itemName));
+  };
+</script>
+
+<!-- Leafs picture -->
+<img
+  class="LeafBackgroundRemoved9 w-72 h-60 left-[-80.30px] top-[800px] absolute origin-top-left rotate-[0.0deg] rounded-xl -z-10"
+  src="../../../leaf-background2.png"
+  alt="Leaf Background"
+/>
+
+<img
+  class="LeafBackgroundRemoved9 w-72 h-60 right-[-90px] top-[250px] absolute origin-top-left rotate-[270deg] rounded-xl -z-10"
+  src="../../../leaf-background1.png"
+  alt="Leaf Background"
+/>
+
+<!-- Pantry Layout -->
+<div class="p-4 max-w-3xl mx-auto bg-white shadow-md rounded-lg">
+  <!-- Top Section: Title and Buttons -->
+  <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+    <h2 class="text-2xl font-bold text-green-600 mb-4 md:mb-0">My Pantry</h2>
+    <div class="flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0">
+      <button
+        on:click={() => addManually.set(true)}
+        class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 w-full sm:w-auto"
+      >
+        Add Manually
+      </button>
+    </div>
   </div>
-  
-  <style>
-    .pantry {
-      padding: 1rem;
-      background: #f3f4f6;
-      border-left: 1px solid #ddd;
-    }
-  
-    ul {
-      list-style: none;
-      padding: 0;
-    }
-  
-    li {
-      margin-bottom: 0.5rem;
-      display: flex;
-      justify-content: space-between;
-    }
-  </style>
-  
+
+  <!-- Pantry Ingredients List (Circular) -->
+  <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 mb-6">
+    {#each $pantry as item (item.name)}
+      <div class="flex flex-col items-center space-y-2">
+        <!-- Ingredient Circle with Placeholder Image -->
+        <div
+          class="bg-gray-200 w-16 h-16 rounded-full flex items-center justify-center"
+        >
+          <img
+            src="/images/placeholder.png"
+            alt={item.name}
+            class="w-10 h-10 object-cover"
+          />
+        </div>
+        <!-- Ingredient Name -->
+        <span class="text-gray-700 text-sm">{item.name}</span>
+        <!-- Ingredient Weight -->
+        <span class="text-gray-500 text-xs">Weight: {item.weight}g</span>
+        <!-- Ingredient Expiration Date -->
+        <span class="text-gray-500 text-xs">Expires: {item.expirationDate}</span
+        >
+        <!-- Remove Button -->
+        <button
+          on:click={() => removeIngredient(item.name)}
+          class="bg-red-500 text-white px-3 py-1 text-xs rounded-full hover:bg-red-600"
+        >
+          Remove
+        </button>
+      </div>
+    {/each}
+  </div>
+</div>
+
+<!-- Add Ingredients Manually -->
+{#if $addManually}
+  <div
+    class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
+  >
+    <div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+      <h2 class="text-2xl font-bold text-green-600 mb-4">Add an Ingredient</h2>
+      <div class="mb-4">
+        <input
+          type="string"
+          bind:value={$selectedIngredient}
+          placeholder="Ingredient Name"
+          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+        />
+      </div>
+      <div class="mb-4">
+        <input
+          type="number"
+          bind:value={$weight}
+          placeholder="Weight (grams)"
+          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+        />
+      </div>
+      <div class="mb-4">
+        <input
+          type="date"
+          bind:value={$expirationDate}
+          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+        />
+      </div>
+      <div class="flex justify-end space-x-4">
+        <button
+          on:click={() => addManually.set(false)}
+          class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+        >
+          Cancel
+        </button>
+        <button
+          on:click={saveIngredientDetails}
+          class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}

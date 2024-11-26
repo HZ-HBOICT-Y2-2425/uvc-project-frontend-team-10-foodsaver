@@ -206,11 +206,15 @@
         alt="Leaf Background"
     />
 
-    <img
-        class="LeafBackgroundRemoved9 w-72 h-60 right-[-90px] top-[250px] absolute origin-top-left rotate-[270deg] rounded-xl -z-10"
-        src="../../../leaf-background1.png"
-        alt="Leaf Background"
-    />
+   <!-- Leafs picture -->
+   <img class="LeafBackgroundRemoved9 w-72 h-60 left-[-80.30px] top-[800px] absolute origin-top-left rotate-[0.0deg] rounded-xl z-[-50]" 
+   src="../../../leaf-background2.png" 
+   alt="Leaf Background" />
+
+   <img class="LeafBackgroundRemoved9 w-72 h-60 right-[-90px] top-[250px] absolute origin-top-left rotate-[270deg] rounded-xl z-[-50]" 
+   src="../../../leaf-background1.png" 
+   alt="Leaf Background" />
+
 
     <!-- Recipes Section -->
     <div class="recipes-with-ingredients-section mb-8 text-left">

@@ -47,7 +47,7 @@
   </div>
   <div class="nav-links hidden md:flex space-x-6">
     <a href="/" class="text-gray-800 hover:text-green-500 text-lg">Home</a>
-    <a href="/search" class="text-gray-800 hover:text-green-500 text-lg">About Us</a>
+    <a href="/about" class="text-gray-800 hover:text-green-500 text-lg">About Us</a>
     <a href="/tips" class="text-gray-800 hover:text-green-500 text-lg">Tips & Tricks</a>
     <a href="/pantry" class="text-gray-800 hover:text-green-500 text-lg">My Pantry</a>
     <a href="/profile" class="text-gray-800 hover:text-green-500 text-lg">Profile</a>

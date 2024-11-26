@@ -1,6 +1,7 @@
 <script lang="ts">
     import { pantry } from "../lib/stores/pantryStore";
     import { goto } from "$app/navigation";
+    import { derived } from "svelte/store";
 
     let searchQuery = "";
     let searchActive = false;
@@ -66,6 +67,28 @@
             currentRecipeIndex2 += 1;
         }
     };
+
+    // Sort the pantry items by expiration date
+    const sortedPantry = derived(pantry, ($pantry) => {
+        return $pantry
+            .slice()
+            .sort(
+                (
+                    a: { expirationDate: string },
+                    b: { expirationDate: string },
+                ) =>
+                    new Date(a.expirationDate).getTime() -
+                    new Date(b.expirationDate).getTime(),
+            );
+    });
+
+    // Get the top 5 ingredients with the nearest expiration date
+    const nearestExpiringIngredients = derived(
+        sortedPantry,
+        ($sortedPantry) => {
+            return $sortedPantry.slice(0, 5);
+        },
+    );
 </script>
 
 <div class="container mx-auto mt-8 px-4 lg:px-6 text-center">
@@ -74,7 +97,9 @@
     </h2>
 
     <!-- Search Bar Section -->
-    <div class="search-bar-container flex items-center justify-center w-full relative mb-8">
+    <div
+        class="search-bar-container flex items-center justify-center w-full relative mb-8"
+    >
         <div class="relative flex-grow max-w-2xl">
             <div class="relative">
                 <input
@@ -106,30 +131,30 @@
 
                 <!-- Dropdown for pantry items -->
                 {#if searchActive}
-                <div class="dropdown absolute top-full left-0 mt-2 bg-white shadow-md border border-gray-200 rounded-md w-full z-50 p-4">
-                    <h3 class="font-bold mb-2">Select Ingredients</h3>
-                    <ul>
-                        {#each $pantry as item}
-                        <li class="flex items-center mb-2">
-                            <label class="flex items-center space-x-2">
-                                <input
-                                    type="checkbox"
-                                    bind:group={selectedIngredients}
-                                    value={item}
-                                    class="mr-2"
-                                />
-                                <span>{item}</span>
-                            </label>
-                        </li>
-                        {/each}
-                    </ul>
-                    <button
-                        on:click={() => (searchActive = false)}
-                        class="button-secondary mt-2 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none"
+                    <div
+                        class="dropdown absolute top-full left-0 mt-2 bg-white shadow-md border border-gray-200 rounded-md w-full z-50 p-4"
                     >
-                        Close
-                    </button>
-                </div>
+                        <h3 class="font-bold mb-2">Select Ingredients</h3>
+                        <ul>
+                            {#each $pantry as item, index (item.id ? item.id : index)}
+                                <li class="flex items-center mb-2">
+                                    <label class="flex items-center space-x-2">
+                                        <input
+                                            type="checkbox"
+                                            bind:group={selectedIngredients}
+                                            value={item.name}
+                                            class="mr-2"
+                                        />
+                                        <span>{item.name}</span>
+                                    </label>
+                                </li>
+                            {/each}
+                        </ul>
+                        <button
+                            on:click={() => (searchActive = false)}
+                            class="button-secondary mt-2">Close</button
+                        >
+                    </div>
                 {/if}
             </div>
         </div>
@@ -147,71 +172,45 @@
 
     <!-- Expiring Ingredients Section -->
     <div class="expiring-ingredients-section mb-8 text-left">
-        <h3 class="text-2xl font-semibold mb-4">Expiring Ingredients</h3>
+        <h3 class="text-2xl font-semibold mb-4">Ingredients Expiring Soon</h3>
         <div class="flex items-center space-x-4 overflow-x-auto">
-            <button
-                class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100"
-            >
-                <svg
-                    class="w-4 h-4"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M15 19l-7-7 7-7"
-                    />
-                </svg>
-            </button>
-            <div class="flex space-x-4">
-                {#each ["Broccoli", "Cheese", "Beans", "Bread", "Garlic", "Banana"] as ingredient}
-                    <div
-                        class="ingredient-item w-12 h-12 rounded-full shadow-md flex items-center justify-center bg-gray-100"
-                    >
-                        <img
-                            src={`/images/${ingredient.toLowerCase()}.png`}
-                            alt={ingredient}
-                            class="w-8 h-8"
-                            on:error={handleImageError}
-                        />
+            {#each $nearestExpiringIngredients as item, index (item.id || index)}
+                {#if (new Date(item.expirationDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24) <= 3}
+                    <div class="flex flex-col items-center space-y-2">
+                        <div
+                            class="bg-gray-200 w-20 h-20 rounded-full flex items-center justify-center"
+                        >
+                            <img
+                                src="/images/ingredient_placeholder.png"
+                                alt={item.name}
+                                class="w-12 h-12 object-cover"
+                            />
+                        </div>
+                        <span class="text-gray-700 text-sm">{item.name}</span>
+                        <span class="text-gray-500 text-xs"
+                            >Weight: {item.weight}g</span
+                        >
+                        <span class="text-gray-500 text-xs"
+                            >Expires: {item.expirationDate}</span
+                        >
                     </div>
-                {/each}
-            </div>
-            <button
-                class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100"
-            >
-                <svg
-                    class="w-4 h-4"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M9 5l7 7-7 7"
-                    />
-                </svg>
-            </button>
+                {/if}
+            {/each}
         </div>
     </div>
 
+    <!-- Leafs picture -->
+    <img
+        class="LeafBackgroundRemoved9 w-72 h-60 left-[-80.30px] top-[800px] absolute origin-top-left rotate-[0.0deg] rounded-xl -z-10"
+        src="../../../leaf-background2.png"
+        alt="Leaf Background"
+    />
 
-   <!-- Leafs picture -->
-   <img class="LeafBackgroundRemoved9 w-72 h-60 left-[-80.30px] top-[800px] absolute origin-top-left rotate-[0.0deg] rounded-xl" 
-   src="../../../leaf-background2.png" 
-   alt="Leaf Background" />
-
-   <img class="LeafBackgroundRemoved9 w-72 h-60 right-[-90px] top-[250px] absolute origin-top-left rotate-[270deg] rounded-xl" 
-   src="../../../leaf-background1.png" 
-   alt="Leaf Background" />
-
+    <img
+        class="LeafBackgroundRemoved9 w-72 h-60 right-[-90px] top-[250px] absolute origin-top-left rotate-[270deg] rounded-xl -z-10"
+        src="../../../leaf-background1.png"
+        alt="Leaf Background"
+    />
 
     <!-- Recipes Section -->
     <div class="recipes-with-ingredients-section mb-8 text-left">

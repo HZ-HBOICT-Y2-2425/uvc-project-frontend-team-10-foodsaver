@@ -104,7 +104,7 @@
 <div class="p-4 max-w-3xl mx-auto bg-white shadow-md rounded-lg">
   <!-- Top Section: Title and Buttons -->
   <div class="flex flex-col md:flex-row justify-between items-center mb-6">
-    <h2 class="text-2xl font-bold text-green-600 mb-4 md:mb-0">My Pantry</h2>
+    <h2 class="text-2xl font-bold text-green-600 mb-4 md:mb-0"></h2>
     <div class="flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0">
       <button
         on:click={() => addManually.set(true)}
@@ -124,7 +124,7 @@
           class="bg-gray-200 w-16 h-16 rounded-full flex items-center justify-center"
         >
           <img
-            src="/images/placeholder.png"
+            src="/fridge-solid-24.png"
             alt={item.name}
             class="w-10 h-10 object-cover"
           />

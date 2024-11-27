@@ -17,7 +17,13 @@ export async function load({ params, fetch }) {
         recipe
       }
     };
-  } catch (error) {
-    return { status: 500, error: new Error('Failed to load data') };
+  }
+
+  catch (error) {
+    console.error('Request failed:', error);
+    return {
+      status: 500,
+      error: new Error('Request failed')
+    };
   }
 }

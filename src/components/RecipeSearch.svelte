@@ -7,6 +7,26 @@
     let searchActive = false;
     let selectedIngredients: string[] = [];
 
+
+    let username = "";
+
+// Función para obtener el nombre del usuario desde el backend
+async function fetchUserName() {
+    const response = await fetch("http://localhost:3012/user");  // Cambia el puerto si es necesario
+    if (response.ok) {
+        const data = await response.json();
+        username = data.name;  // Asigna el nombre del usuario
+    } else {
+        console.error("Failed to fetch user name");
+    }
+}
+
+// Llama a la función cuando el componente se monta
+onMount(() => {
+    fetchUserName();
+});
+
+
     const recipes = [
         "Asian bowl",
         "Brunch",
@@ -93,7 +113,7 @@
 
 <div class="container mx-auto mt-8 px-4 lg:px-6 text-center">
     <h2 class="text-3xl font-bold text-green-800 italic mb-6">
-        Hello, "username"!
+        Hello, {username ? username : "Loading..."}
     </h2>
 
     <!-- Search Bar Section -->

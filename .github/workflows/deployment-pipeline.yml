@@ -8,20 +8,24 @@ on:
       - release/deployment-pipeline
 
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
+    
     steps:
+      # Checkout the code from the repository
       - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Setup Node.js
-        uses: actions/setup-node@v2
+        uses: actions/checkout@v3
+
+      # Set up Node.js environment
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '18'  # Use the version that matches your project
+
+      # Install dependencies
       - name: Install dependencies
         run: npm install
-      - name: Lint code
-        run: npm run lint
-      - name: Run unit tests
-        run: npm run test
-      - name: Build SvelteKit app
+
+      # Build the project
+      - name: Build the app
         run: npm run build

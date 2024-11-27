@@ -2,12 +2,9 @@ name: CI Pipeline
 on:
   push:
     branches:
-      - main
       - release/deployment-pipeline
   pull_request:
     branches:
-      - main
-      - develop
       - release/deployment-pipeline
 
 jobs:

@@ -105,12 +105,14 @@
   <div class="flex flex-col md:flex-row justify-between items-center mb-6">
     <h2 class="text-2xl font-bold text-green-600 mb-4 md:mb-0">My Pantry</h2>
     <div class="flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0">
-      <button
-        on:click={() => removeManually.set(true)}
-        class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-green-600 w-full sm:w-auto"
-      >
-        Remove Ingredients
-      </button>
+      {#if $pantry.length > 0}
+        <button
+          on:click={() => removeManually.set(true)}
+          class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-green-600 w-full sm:w-auto"
+        >
+          Remove Ingredients
+        </button>
+      {/if}
       <button
         on:click={() => addManually.set(true)}
         class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 w-full sm:w-auto"

@@ -21,7 +21,7 @@
 
     // fetch recipe details
     async function fetchRecipes() {
-        const apiKey = "2294333ae4bd4ac684e27677b3c30c63";
+        const apiKey = "4b94021e0008460490fb26e12c8ec0f0";
         const requests = favoriteRecipeIds.map((id) =>
             fetch(
                 `https://api.spoonacular.com/recipes/${id}/information?apiKey=${apiKey}`,

@@ -12,7 +12,7 @@
   let editMode = writable<boolean>(false);
   let editIndex = writable<number | null>(null);
 
-  const API_KEY = "ea8bbbce866540469291ee4bef92ec24"; // Replace with your actual API key
+  const API_KEY = "4b94021e0008460490fb26e12c8ec0f0"; // Replace with your actual API key
 
   // Fetch ingredients from the API
   onMount(async () => {

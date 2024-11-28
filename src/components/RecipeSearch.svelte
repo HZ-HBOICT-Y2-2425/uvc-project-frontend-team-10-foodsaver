@@ -181,7 +181,7 @@
                             class="bg-gray-200 w-20 h-20 rounded-full flex items-center justify-center"
                         >
                             <img
-                                src="/images/ingredient_placeholder.png"
+                                src="/fridge-solid-24.png"
                                 alt={item.name}
                                 class="w-12 h-12 object-cover"
                             />
@@ -215,7 +215,7 @@
     <!-- Recipes Section -->
     <div class="recipes-with-ingredients-section mb-8 text-left">
         <h3 class="text-2xl font-semibold mb-4">
-            Recipes with Your Expiring Ingredients:
+            Popular Recipes:
         </h3>
         <div class="flex items-center space-x-4 overflow-x-auto">
             <button
@@ -243,7 +243,7 @@
                         class="recipe-card border p-4 rounded-lg text-center shadow-md w-40"
                     >
                         <img
-                            src="/images/recipe_placeholder.png"
+                            src="/asian-bowl.jpg"
                             alt={recipe}
                             class="w-full h-24 object-cover rounded-md mb-2"
                             on:error={handleImageError}
@@ -280,7 +280,7 @@
     </div>
     <div class="recipes-with-ingredients-section mb-8 text-left">
         <h3 class="text-2xl font-semibold mb-4">
-            Recipes with Your Expiring Ingredients:
+            Seosonal Recipes:
         </h3>
         <div class="flex items-center space-x-4 overflow-x-auto">
             <button
@@ -308,7 +308,7 @@
                         class="recipe-card border p-4 rounded-lg text-center shadow-md w-40"
                     >
                         <img
-                            src="/images/recipe_placeholder.png"
+                            src="/asian-bowl.jpg"
                             alt={recipe}
                             class="w-full h-24 object-cover rounded-md mb-2"
                             on:error={handleImageError}

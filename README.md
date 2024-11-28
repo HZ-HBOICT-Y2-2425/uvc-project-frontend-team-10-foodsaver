@@ -59,11 +59,6 @@ The CI/CD pipeline is triggered on every push to the `main`/`release/deployment-
 The pipeline is triggered by:
 - **Pushes** to the `main`/`release/deployment-branch` branch.
 - **Pull Requests** to the `main`/`release/deployment-branch` branch.
-- **Scheduled** builds (e.g., daily builds).
-
-### Artifacts
-
-- Build artifacts are stored in the `build/` directory and can be accessed through the GitHub Actions "Artifacts" tab.
 
 ## CI/CD Pipeline Sequence Diagram
 
@@ -72,7 +67,6 @@ sequenceDiagram
     participant Developer
     participant GitHub Actions
     participant Build Server
-    participant Deployment Server
 
     Developer->>GitHub Actions: Pushes code
     GitHub Actions->>Build Server: Builds application

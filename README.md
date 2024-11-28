@@ -42,6 +42,7 @@ You can preview the production build with `npm run preview`.
 
 This project uses GitHub Actions for Continuous Integration and Continuous Deployment (CI/CD).
 
+
 ### Pipeline Workflow
 
 The CI/CD pipeline is triggered on every push to the `main`/`release/deployment-branch` branch and includes the following steps:

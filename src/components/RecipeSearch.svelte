@@ -3,6 +3,53 @@
     import { goto } from "$app/navigation";
     import { derived } from "svelte/store";
 
+    import { onMount } from "svelte";
+    import { writable } from "svelte/store";
+
+
+// Estado para almacenar el nombre del usuario
+let username = writable<string | null>(null);
+
+// Función para obtener los datos del usuario autenticado
+// async function fetchAuthenticatedUser() {
+//     try {
+//         const response = await fetch("http://localhost:4000/authenticated-user", {
+//             headers: {
+//                 Authorization: `Bearer ${localStorage.getItem('token')}` // Enviar el token JWT
+//             }
+//         });
+
+//         console.log("Response status:", response.status); // Verifica el código de estado de la respuesta
+
+//         if (response.ok) {
+//             const user = await response.json();
+//             username.set(user.username); // Actualizar el store con el nombre del usuario
+//         } else {
+//             console.error("Failed to fetch authenticated user");
+//         }
+//     } catch (error) {
+//         console.error("Error fetching authenticated user:", error);
+//     }
+// }
+
+async function fetchAuthenticatedUser() {
+        const response = await fetch(
+            "http://localhost:4000/authenticated-user",
+        );
+        if (response.ok) {
+            username = await response.json();
+        } else {
+            console.error("Failed to fetch username");
+        }
+    }
+
+
+// Llamar a la función cuando se monta la página
+onMount(() => {
+    fetchAuthenticatedUser();
+});
+    
+
     let searchQuery = "";
     let searchActive = false;
     let selectedIngredients: string[] = [];
@@ -93,7 +140,7 @@
 
 <div class="container mx-auto mt-8 px-4 lg:px-6 text-center">
     <h2 class="text-3xl font-bold text-green-800 italic mb-6">
-        Hello, "username"!
+        Hello, {$username || "Guest"}!
     </h2>
 
     <!-- Search Bar Section -->

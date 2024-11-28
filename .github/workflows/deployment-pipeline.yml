@@ -30,11 +30,5 @@ jobs:
       - name: Build the app
         run: npm run build
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: my-artifact
-          path: ./build/  # Path to the build directory
-
 
         

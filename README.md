@@ -51,7 +51,7 @@ The CI/CD pipeline is triggered on every push to the `main`/`release/deployment-
 2. **Set up Node.js**: The pipeline installs the necessary Node.js version and dependencies.
 3. **Run Tests (Not yet implemented)**: Unit tests are run using a testing framework (e.g., Jest, Mocha).
 4. **Build Application**: The application is built using the `npm run build` command.
-5. **Deploy**: If the tests pass and the build is successful, the application is deployed to the production environment.
+5. **Deploy (Not yet implemented)**: If the tests pass and the build is successful, the application is deployed to the production environment.
 6. **Notify**: The pipeline sends notifications (e.g., via Slack or email) if the build or deployment fails.
 
 ### Triggering
@@ -75,9 +75,7 @@ sequenceDiagram
     participant Deployment Server
 
     Developer->>GitHub Actions: Pushes code
-    GitHub Actions->>Build Server: Runs tests and builds application
+    GitHub Actions->>Build Server: Builds application
     Build Server-->>GitHub Actions: Build and test results
-    GitHub Actions->>Deployment Server: Deploys application
-    Deployment Server-->>GitHub Actions: Deployment result
     GitHub Actions-->>Developer: Notifies about success/failure
 

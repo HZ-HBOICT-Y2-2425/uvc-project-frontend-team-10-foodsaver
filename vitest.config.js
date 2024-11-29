@@ -1,9 +1,14 @@
-import { defineConfig } from 'vitest/config'
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    globals: true,           // Use globals (like `describe`, `it`)
-    environment: 'jsdom',    // Simulate a browser-like environment
-    include: ['src/**/*.{test,spec}.{js,ts}'], // Test file patterns
+    environment: 'jsdom', // Use jsdom to simulate the browser environment
+    globals: true, // If you want to use global variables like `describe`, `test`, etc.
+    alias: {
+      '@testing-library/svelte': '@testing-library/svelte',
+    },
+    transformMode: {
+      web: [/\.svelte$/], // Transform .svelte files
+    },
   },
-})
+});

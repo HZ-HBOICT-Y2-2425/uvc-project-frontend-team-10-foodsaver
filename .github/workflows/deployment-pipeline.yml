@@ -40,6 +40,10 @@ jobs:
           name: eslint-results
           path: eslint-report.json
 
+      # Run tests
+      - name: Run tests
+        run: npm run test
+
       # Log success message
       - name: Log success message
         if: success()

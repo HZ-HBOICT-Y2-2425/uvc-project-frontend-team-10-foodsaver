@@ -14,7 +14,7 @@ jobs:
     steps:
       # Checkout the code from the repository
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # Set up Node.js environment
       - name: Set up Node.js
@@ -29,3 +29,21 @@ jobs:
       # Build the project
       - name: Build the app
         run: npm run build
+
+      - name: Run ESLint
+        run: npm run lint  
+
+      - name: Upload ESLint results 
+        if: failure() 
+        uses: actions/upload-artifact@v3
+        with:
+          name: eslint-results
+          path: eslint-report.json
+
+      # Log success message
+      - name: Log success message
+        if: success()
+        run: echo "Building and testing was successful"
+
+
+        

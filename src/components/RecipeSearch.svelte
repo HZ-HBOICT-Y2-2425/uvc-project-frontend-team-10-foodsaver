@@ -32,16 +32,29 @@ let username = writable<string | null>(null);
 //     }
 // }
 
+
+
 async function fetchAuthenticatedUser() {
-        const response = await fetch(
-            "http://localhost:4000/authenticated-user",
-        );
-        if (response.ok) {
-            username = await response.json();
-        } else {
-            console.error("Failed to fetch username");
-        }
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+        console.error("No token found");
+        return;
     }
+
+    const response = await fetch("http://localhost:4000/api/users/authenticated-user", {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,  // Aquí se debe enviar el token
+        },
+    });
+
+    if (response.ok) {
+        const username = await response.json();
+        console.log("Authenticated user:", username);
+    } else {
+        console.error("Failed to fetch username");
+    }
+}
 
 
 // Llamar a la función cuando se monta la página

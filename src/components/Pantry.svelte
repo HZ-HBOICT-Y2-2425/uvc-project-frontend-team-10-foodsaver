@@ -124,28 +124,28 @@
 
   <!-- Pantry Ingredients List (Circular) -->
   <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 mb-6">
-    {#each $pantry as item, index (item.name + item.expirationDate + index)}
-      <div class="flex flex-col items-center space-y-2">
-        <!-- Ingredient Circle with Placeholder Image -->
-        <button
-          on:click={() => editIngredientDetails(index)}
-          class="bg-gray-200 w-16 h-16 rounded-full flex items-center justify-center"
-        >
-          <img
-            src="/fridge-solid-24.png"
-            alt={item.name}
-            class="w-10 h-10 object-cover"
-          />
-        </button>
-        <!-- Ingredient Name -->
-        <span class="text-gray-700 text-sm">{item.name}</span>
-        <!-- Ingredient Weight -->
-        <span class="text-gray-500 text-xs">Weight: {item.weight}g</span>
-        <!-- Ingredient Expiration Date -->
-        <span class="text-gray-500 text-xs">Expires: {item.expirationDate}</span
-        >
-      </div>
-    {/each}
+    {#each $pantry as item, index (index)}
+  <div class="flex flex-col items-center space-y-2">
+    <!-- Ingredient Circle with Placeholder Image -->
+    <button
+      on:click={() => editIngredientDetails(index)}
+      class="bg-gray-200 w-16 h-16 rounded-full flex items-center justify-center"
+    >
+      <img
+        src="/fridge-solid-24.png"
+        alt={item.name}
+        class="w-10 h-10 object-cover"
+      />
+    </button>
+    <!-- Ingredient Name -->
+    <span class="text-gray-700 text-sm">{item.name}</span>
+    <!-- Ingredient Weight -->
+    <span class="text-gray-500 text-xs">Weight: {item.weight}g</span>
+    <!-- Ingredient Expiration Date -->
+    <span class="text-gray-500 text-xs">Expires: {item.expirationDate}</span>
+  </div>
+{/each}
+
   </div>
 </div>
 
@@ -208,6 +208,7 @@
   </div>
 {/if}
 
+
 <!-- Remove Ingredients Manually -->
 {#if $removeManually && $pantry.length > 0}
   <div
@@ -216,7 +217,7 @@
     <div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
       <h2 class="text-2xl font-bold text-green-600 mb-4">Remove Ingredients</h2>
       <div class="grid grid-cols-2 gap-4">
-        {#each $pantry as item, index (item.name + item.expirationDate + index)}
+        {#each $pantry as item, index (index)}
           <div class="flex items-center justify-between p-2 border rounded-md">
             <span>{item.name}</span>
             <button

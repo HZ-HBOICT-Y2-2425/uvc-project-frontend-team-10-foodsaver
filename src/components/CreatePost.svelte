@@ -3,6 +3,8 @@
 
     let title = '';
     let content = '';
+
+    // TODO: Pass the user_id from authStore or somewhere else
     let user_id = 1;
 
     // Handle form submission to create a new post

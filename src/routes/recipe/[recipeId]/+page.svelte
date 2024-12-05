@@ -1,5 +1,13 @@
 <script lang="ts">
+	// import { authStore } from './../../../lib/stores/authStore.js';
   import { goto } from "$app/navigation";
+
+  // It doesn't work since we don't have a user_id in frontend store
+  // let user_id = 1;
+  // authStore.subscribe((state) => {
+  //   console.log("Auth store state in home page: ", state);
+  //   user_id = state.user?.id || 1;
+  // });
 
   export let data;
   const { recipe } = data.props;
@@ -8,6 +16,7 @@
   let isFavorite = false;
   let countdowns: Countdown[] = [];
   let showModal = false;
+  const user_id = 1;
 
   interface Countdown {
     time: number; // Remaining time
@@ -16,47 +25,56 @@
   }
 
   async function checkFavoriteStatus() {
-    const response = await fetch(`http://localhost:3012/check-favorite/${recipe.id}`);
-    const data = await response.json();
-    isFavorite = data.isFavorite;
-  }
+    // TODO: Pass the user_id from authStore or somewhere else
+    const response = await fetch(
+        `http://localhost:3012/check-favorite/${recipe.id}?user_id=${user_id}`
+    );
+
+    if (response.ok) {
+        const data = await response.json();
+        isFavorite = data.isFavorite;
+    } else {
+        console.error("Failed to check favorite status");
+    }
+}
 
   checkFavoriteStatus();
 
   async function toggleFavorite() {
+    // TODO: Pass the user_id from authStore or somewhere else
     if (isFavorite) {
-      const response = await fetch(`http://localhost:3012/favorites/${recipe.id}`, {
-        method: "DELETE",
-      });
+        const response = await fetch(`http://localhost:3012/favorites/${recipe.id}`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id }),
+        });
 
-      if (response.ok) {
-        alert("This recipe is removed from favorites");
-        isFavorite = false;
-      } else {
-        const error = await response.json();
-        alert(`Failed to remove from favorites: ${error.error}`);
-      }
+        if (response.ok) {
+            alert("This recipe is removed from favorites");
+            isFavorite = false;
+        } else {
+            const error = await response.json();
+            alert(`Failed to remove from favorites: ${error.error}`);
+        }
     } else {
-      const payload = { recipe_id: recipe.id };
-      const response = await fetch("http://localhost:3012/favorites", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+        const response = await fetch("http://localhost:3012/favorites", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ recipe_id: recipe.id, user_id }),
+        });
 
-      if (response.ok) {
-        alert("This recipe is added to favorites");
-        isFavorite = true;
-      } else {
-        const error = await response.json();
-        alert(`Failed to add to favorites: ${error.error}`);
-      }
+        if (response.ok) {
+            alert("This recipe is added to favorites");
+            isFavorite = true;
+        } else {
+            const error = await response.json();
+            alert(`Failed to add to favorites: ${error.error}`);
+        }
     }
 
-    goto("/favorite");
-
     checkFavoriteStatus();
-  }
+}
+
 
   function getSteps(instructions: string) {
     const parser = new DOMParser();

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { page } from "$app/stores";
-  import { goto } from "$app/navigation"; // 导入 'goto' 用于页面跳转
+  import { goto } from "$app/navigation";
 
   // Define the recipe type
   type Recipe = {
@@ -18,7 +18,7 @@
   let isVegetarian = false; // Checkbox for Vegetarian filter
   let isGlutenFree = false; // Checkbox for Gluten-Free filter
 
-  const API_KEY = "4b94021e0008460490fb26e12c8ec0f0"; // Replace with your actual API key
+  const API_KEY = "2294333ae4bd4ac684e27677b3c30c63"; // Replace with your actual API key
 
   // Fetch recipes based on the selected ingredients from query parameters
   onMount(async () => {

@@ -8,6 +8,9 @@
     let updatedTitle = "";
     let updatedContent = "";
 
+    // TODO: Pass the user_id from authStore or somewhere else
+    let user_id = 1;
+
     // Fetch the post based on the post ID
     async function fetchPost() {
         const { post_id } = $page.params;
@@ -22,7 +25,12 @@
         }
     }
 
-    // Update the post's title and content
+    // check if the current user can edit or delete the posts
+    function canEditOrDelete() {
+        return post?.user_id === user_id; // checke if current user_id is same with the post creator
+    }
+
+    // Update and delete functions remain unchanged...
     async function updatePost() {
         const { post_id } = $page.params;
         const response = await fetch(`http://localhost:3015/forum/${post_id}`, {
@@ -45,7 +53,6 @@
         }
     }
 
-    // Delete the post
     async function deletePost() {
         const { post_id } = $page.params;
         const response = await fetch(`http://localhost:3015/forum/${post_id}`, {
@@ -102,18 +109,21 @@
                 </p>
 
                 <div class="flex gap-4 mt-4">
-                    <button
-                        class="bg-yellow-500 text-white px-4 py-2 rounded"
-                        on:click={() => (isEditing = true)}
-                    >
-                        Edit
-                    </button>
-                    <button
-                        class="bg-red-500 text-white px-4 py-2 rounded"
-                        on:click={deletePost}
-                    >
-                        Delete
-                    </button>
+                    {#if canEditOrDelete()}
+                        <!-- Only show Edit and Delete if the user owns the post -->
+                        <button
+                            class="bg-yellow-500 text-white px-4 py-2 rounded"
+                            on:click={() => (isEditing = true)}
+                        >
+                            Edit
+                        </button>
+                        <button
+                            class="bg-red-500 text-white px-4 py-2 rounded"
+                            on:click={deletePost}
+                        >
+                            Delete
+                        </button>
+                    {/if}
                     <button
                         class="bg-gray-500 text-white px-4 py-2 rounded"
                         on:click={() => goto("/community")}

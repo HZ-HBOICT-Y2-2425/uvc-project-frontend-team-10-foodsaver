@@ -79,6 +79,11 @@
     goto(`/recipe/${recipeId}`); // 跳转到详情页面，并传递菜谱 ID
   }
 
+  // 跳转到收藏页面的函数
+  function goToFavorites() {
+    goto(`/favorite`); // 跳转到收藏页面
+  }
+
   // Apply filters to the fetched recipes
   const applyFilters = (): void => {
     filteredRecipes = recipes.filter((recipe) => {
@@ -127,14 +132,15 @@
         <img
           src={recipe.image}
           alt={recipe.title}
-          class="w-full h-32 object-cover rounded-md mb-2"
+          class="w-full h-32 object-cover rounded-md mb-2 cursor-pointer"
+          on:click={() => goToRecipeDetails(recipe.id)}
         />
         <p class="font-semibold text-lg">{recipe.title}</p>
         <button
-          class="mt-2 bg-white hover:bg-red-500 hover:text-white border border-red-500 rounded-full p-2"
-          on:click={() => goToRecipeDetails(recipe.id)}
+          class="mt-2 text-red-500 hover:text-red-700 transition-colors"
+          on:click={goToFavorites}
         >
-          <i class="fas fa-heart"></i>
+          <i class="fas fa-heart text-2xl"></i>
         </button>
       </div>
     {/each}

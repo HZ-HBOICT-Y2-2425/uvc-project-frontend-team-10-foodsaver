@@ -23,7 +23,7 @@
 
   checkFavoriteStatus();
 
-  async function toggleFavorite() {
+  export async function toggleFavorite() {
     if (isFavorite) {
       const response = await fetch(`http://localhost:3012/favorites/${recipe.id}`, {
         method: "DELETE",

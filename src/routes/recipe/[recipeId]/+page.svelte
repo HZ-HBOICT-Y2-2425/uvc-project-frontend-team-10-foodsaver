@@ -106,10 +106,18 @@
     countdowns = [...countdowns]; // Trigger reactivity
   }
 
-  function updateCountdownInput(index: number, value: string) {
+  function updateCountdownMinutes(index: number, value: string) {
     countdowns[index] = {
       ...countdowns[index],
-      input: Number(value),
+      minutes: Number(value),
+    };
+    countdowns = [...countdowns]; // Trigger reactivity
+  }
+
+  function updateCountdownSeconds(index: number, value: string) {
+    countdowns[index] = {
+      ...countdowns[index],
+      seconds: Number(value),
     };
     countdowns = [...countdowns]; // Trigger reactivity
   }
@@ -182,16 +190,28 @@
                 <span class="text-lg">⏰</span>
                 <input
                   type="number"
-                  placeholder="Enter time (s)"
-                  value={countdowns[index]?.input || ""}
-                  on:input={(e) => updateCountdownInput(index, e.target.value)}
-                  class="border border-gray-300 rounded px-2 w-36"
+                  placeholder="Min"
+                  min="0"
+                  value={countdowns[index]?.minutes || ""}
+                  on:input={(e) => updateCountdownMinutes(index, e.target.value)}
+                  class="border border-gray-300 rounded px-2 w-20"
+                />
+                <span>:</span>
+                <input
+                  type="number"
+                  placeholder="Sec"
+                  min="0"
+                  max="59"
+                  value={countdowns[index]?.seconds || ""}
+                  on:input={(e)=>updateCountdownSeconds(index, e.target.value)}
+                  class="border border-gray-300 rounded px-2 w-20"
                 />
                 <button
                   on:click={() =>
                     startCountdown(
                       index,
-                      Number(countdowns[index]?.input || 0),
+                      (Number(countdowns[index]?.minutes || 0) * 60) +
+                      Number(countdowns[index]?.seconds || 0)
                     )}
                   class="bg-blue-500 text-white px-3 py-1 rounded"
                 >
@@ -199,14 +219,16 @@
                 </button>
                 {#if countdowns[index] && countdowns[index].time !== null}
                   <p class="text-gray-700">
-                    Time left: {countdowns[index].time}s
+                    Time left: {Math.floor(countdowns[index].time / 60)}m
+                    {countdowns[index].time % 60}s
                   </p>
-                {:else if countdowns[index]?.input}
+                {:else if countdowns[index]?.minutes || countdowns[index]?.seconds}
                   <p class="text-gray-700">
-                    Time left: {countdowns[index].input}s
+                    Time left: {countdowns[index].minutes || 0}m
+                    {countdowns[index]?.seconds || 0}s
                   </p>
                 {:else}
-                  <p class="text-gray-700">Time left: s</p>
+                  <p class="text-gray-700">Time left: 0m 0s</p>
                 {/if}
               </div>
             {/if}

@@ -12,10 +12,12 @@
 
   authStore.subscribe((state) => {
       isLoggedIn = state.isLoggedIn;
+      console.log("Auth Store State: ", state);
   });
 
   onMount(() => {
       if (isLoggedIn) {
+          console.log("User already logged in, redirecting to home...");
           goto('/');
       }
   });
@@ -45,6 +47,7 @@
       try {
           const API_BASE_URL = 'http://localhost:4000/api/users';
 
+          console.log("Sending login request to backend...");
           const response = await fetch(`${API_BASE_URL}/login`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -52,11 +55,12 @@
           });
 
           const data = await response.json();
+          console.log("Response from backend: ", data);
 
           if (data.success) {
               localStorage.setItem('authToken', data.token);
-
-              login({ username: data.username });
+              login({ username: data.username }, data.token);
+              console.log("Auth Store updated with username:", data.username);
 
               successMessage = 'Login successful!';
               if (successBox && successText) {
@@ -73,8 +77,10 @@
                   errorText.textContent = errorMessage;
                   errorBox.classList.remove('hidden');
               }
+              console.log("Error during login: ", data.message);
           }
       } catch (error) {
+          console.error("Error during login request: ", error);
           errorMessage = 'Something went wrong! Please try again later.';
           if (errorBox && errorText) {
               errorText.textContent = errorMessage;

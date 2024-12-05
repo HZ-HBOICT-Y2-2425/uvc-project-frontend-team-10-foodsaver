@@ -3,17 +3,24 @@
     import { goto } from "$app/navigation";
     import { derived } from "svelte/store";
     import { onMount } from "svelte";
+    import { authStore } from '../lib/stores/authStore';
 
     let searchQuery = "";
     let searchActive = false;
     let selectedIngredients: string[] = [];
     let recipes: any[] = []; // Will store the fetched recipes
     let seasonalRecipes: any[] = []; // Will store the fetched seasonal recipes
+    let username = '';
 
     const visibleRecipeCount = 6;
 
     let currentRecipeIndex1 = 0;
     let currentRecipeIndex2 = 0;
+
+    authStore.subscribe((state) => {
+    console.log("Auth store state in home page: ", state);
+    username = state.user?.username || '';
+  });
 
     // Trigger search function
     const searchRecipes = () => {
@@ -187,7 +194,7 @@
 
 <div class="container mx-auto mt-8 px-4 lg:px-6 text-center">
     <h2 class="text-3xl font-bold text-green-800 italic mb-6">
-        Hello, "username"!
+        Hello, {username}!
     </h2>
 
     <!-- Search Bar Section -->

@@ -8,6 +8,7 @@
   let errorMessage = '';
   let successMessage = '';
   let isLoggedIn = false;
+  let showPassword = false;
 
   authStore.subscribe((state) => {
       isLoggedIn = state.isLoggedIn;
@@ -105,23 +106,36 @@
   </div>
 
   <div class="space-y-6">
-    <div class="InputField">
-      <label for="username" class="block text-gray-700 text-base font-medium">Username</label>
-      <input
-        type="text"
-        id="username"
-        bind:value={username}
-        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300"
-      />
-    </div>
-    <div class="InputField">
-      <label for="password" class="block text-gray-700 text-base font-medium">Password</label>
-      <input
-        type="password"
-        id="password"
-        bind:value={password}
-        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300"
-      />
+    <div class="space-y-6">
+      <div class="InputField">
+        <label for="username" class="block text-gray-700 text-base font-medium">Username</label>
+        <input
+          type="text"
+          id="username"
+          bind:value={username}
+          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300"
+        />
+      </div>
+      <div class="InputField">
+        <label for="password" class="block text-gray-700 text-sm font-medium mb-2">Password</label>
+        <input
+          type={showPassword ? "text" : "password"}
+          id="password"
+          bind:value={password}
+          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300"
+        />
+        <div class="flex items-center mt-2">
+          <input
+            type="checkbox"
+            id="togglePassword"
+            bind:checked={showPassword}
+            class="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring focus:ring-blue-300"
+          />
+          <label for="togglePassword" class="text-sm text-gray-600 cursor-pointer">
+            Show Password
+          </label>
+        </div>
+      </div>
     </div>
   </div>
 

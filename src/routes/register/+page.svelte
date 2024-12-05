@@ -3,6 +3,7 @@
   let email = '';
   let password = '';
   let confirmPassword = '';
+  let showPasswords = false;
   let errorMessage = '';
   let successMessage = '';
 
@@ -163,8 +164,9 @@
     <div class="InputField">
       <label for="password" class="block text-gray-700 text-base font-medium">Password</label>
       <input
-        type="password"
+        type={showPasswords ? "text" : "password"}
         id="password"
+        placeholder="8 characters, uppercase letter, number, special character!"
         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300"
         bind:value={password}
       />
@@ -172,14 +174,22 @@
     <div class="InputField">
       <label for="confirm-password" class="block text-gray-700 text-base font-medium">Confirm Password</label>
       <input
-        type="password"
+        type={showPasswords ? "text" : "password"}
         id="confirm-password"
         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300"
         bind:value={confirmPassword}
       />
     </div>
+    <div class="flex items-center mt-2">
+      <input
+        type="checkbox"
+        id="togglePasswords"
+        bind:checked={showPasswords}
+        class="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring focus:ring-blue-300"
+      />
+      <label for="togglePasswords" class="text-sm text-gray-600 cursor-pointer">Show Passwords</label>
+    </div>
   </div>
-
   <div class="mt-8 space-y-4">
     <button 
       class="w-full py-3 bg-purple-200 text-purple-800 rounded-full text-sm font-medium hover:bg-purple-300"

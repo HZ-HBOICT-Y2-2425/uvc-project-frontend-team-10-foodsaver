@@ -62,14 +62,9 @@
                         src={recipe.image}
                         alt={recipe.title}
                         class="w-full h-32 object-cover rounded-md mb-2"
+                        on:click={() => goToRecipeDetails(recipe.id)}
                     />
                     <p class="font-semibold text-lg">{recipe.title}</p>
-                    <button
-                        class="mt-2 bg-white hover:bg-red-500 hover:text-white border border-red-500 rounded-full p-2"
-                        on:click={() => goToRecipeDetails(recipe.id)}
-                    >
-                        <i class="fas fa-heart"></i>
-                    </button>
                 </div>
             {/each}
         </div>

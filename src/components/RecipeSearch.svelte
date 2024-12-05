@@ -187,6 +187,13 @@
             console.error("Error fetching seasonal recipes:", error);
         }
     });
+
+
+// jump to recipe details page
+function goToRecipeDetails(recipeId: number) {
+        goto(`/recipe/${recipeId}`);
+    }
+
 </script>
 
 
@@ -201,6 +208,17 @@
     <div
         class="search-bar-container flex items-center justify-center w-full relative mb-8"
     >
+
+        <!-- Favourites Button -->
+        <div class="ml-4 mr-4">
+            <button
+                class="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring focus:ring-green-300"
+                on:click={() => goto("/favorite")}
+            >
+                Favourites
+            </button>
+        </div>
+
         <div class="relative flex-grow max-w-2xl">
             <div class="relative">
                 <input
@@ -260,15 +278,6 @@
             </div>
         </div>
 
-        <!-- Favourites Button -->
-        <div class="ml-4">
-            <button
-                class="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring focus:ring-green-300"
-                on:click={() => goto("/favorite")}
-            >
-                Favourites
-            </button>
-        </div>
     </div>
 
     <!-- Expiring Ingredients Section -->
@@ -349,13 +358,9 @@
                             alt={recipe.strMeal}
                             class="w-full h-24 object-cover rounded-md mb-2"
                             on:error={handleImageError}
+                            on:click={() => goToRecipeDetails(recipe.idMeal)}
                         />
                         <p class="font-semibold text-lg mb-2">{recipe.strMeal}</p>
-                        <button
-                            class="mt-2 bg-white hover:bg-red-500 hover:text-white border border-red-500 rounded-full p-2"
-                        >
-                            <i class="fas fa-heart"></i>
-                        </button>
                     </div>
                 {/each}
             </div>
@@ -420,13 +425,10 @@
                         alt={recipe.strMeal}
                         class="w-full h-24 object-cover rounded-md mb-2"
                         on:error={handleImageError}
+                        on:click={() => goToRecipeDetails(recipe.idMeal)}
                     />
                     <p class="font-semibold text-lg mb-2">{recipe.strMeal}</p>
-                    <button
-                        class="mt-2 bg-white hover:bg-red-500 hover:text-white border border-red-500 rounded-full p-2"
-                    >
-                        <i class="fas fa-heart"></i>
-                    </button>
+                   
                 </div>
             {/each}
         </div>

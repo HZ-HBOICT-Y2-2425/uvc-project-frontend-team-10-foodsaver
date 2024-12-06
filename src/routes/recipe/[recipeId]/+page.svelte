@@ -1,13 +1,13 @@
 <script lang="ts">
-	// import { authStore } from './../../../lib/stores/authStore.js';
+	import { authStore } from './../../../lib/stores/authStore.js';
   import { goto } from "$app/navigation";
 
-  // It doesn't work since we don't have a user_id in frontend store
-  // let user_id = 1;
-  // authStore.subscribe((state) => {
-  //   console.log("Auth store state in home page: ", state);
-  //   user_id = state.user?.id || 1;
-  // });
+  let user_id = 1;
+  authStore.subscribe((state) => {
+    console.log("Auth store state in home page: ", state);
+    user_id = state.user?.id || 1;
+    console.log("user id is: ", user_id);
+  });
 
   export let data;
   const { recipe } = data.props;
@@ -16,7 +16,6 @@
   let isFavorite = false;
   let countdowns: Countdown[] = [];
   let showModal = false;
-  const user_id = 1;
 
   interface Countdown {
     time: number; // Remaining time
@@ -25,7 +24,6 @@
   }
 
   async function checkFavoriteStatus() {
-    // TODO: Pass the user_id from authStore or somewhere else
     const response = await fetch(
         `http://localhost:3012/check-favorite/${recipe.id}?user_id=${user_id}`
     );
@@ -41,7 +39,6 @@
   checkFavoriteStatus();
 
   async function toggleFavorite() {
-    // TODO: Pass the user_id from authStore or somewhere else
     if (isFavorite) {
         const response = await fetch(`http://localhost:3012/favorites/${recipe.id}`, {
             method: "DELETE",

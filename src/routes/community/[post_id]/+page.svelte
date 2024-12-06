@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { authStore } from './../../../lib/stores/authStore.js';
     import { onMount } from "svelte";
     import { page } from "$app/stores";
     import { goto } from "$app/navigation";
@@ -8,8 +9,12 @@
     let updatedTitle = "";
     let updatedContent = "";
 
-    // TODO: Pass the user_id from authStore or somewhere else
     let user_id = 1;
+    authStore.subscribe((state) => {
+        console.log("Auth store state in home page: ", state);
+        user_id = state.user?.id || 1;
+        console.log("user id is: ", user_id);
+    });
 
     // Fetch the post based on the post ID
     async function fetchPost() {

@@ -1,11 +1,16 @@
 <script lang="ts">
+	import { authStore } from './../lib/stores/authStore.js';
     import { goto } from "$app/navigation";
 
     let title = '';
     let content = '';
 
-    // TODO: Pass the user_id from authStore or somewhere else
     let user_id = 1;
+    authStore.subscribe((state) => {
+        console.log("Auth store state in home page: ", state);
+        user_id = state.user?.id || 1;
+        console.log("user id is: ", user_id);
+    });
 
     // Handle form submission to create a new post
     async function handleSubmit() {

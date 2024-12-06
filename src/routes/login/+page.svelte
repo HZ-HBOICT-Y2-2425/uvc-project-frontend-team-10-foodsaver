@@ -58,15 +58,15 @@
           console.log("Response from backend: ", data);
 
           if (data.success) {
-              localStorage.setItem('authToken', data.token);
-              login({ username: data.username }, data.token);
-              console.log("Auth Store updated with username:", data.username);
+          localStorage.setItem('authToken', data.token);
+          login({ username: data.username, id: data.id }, data.token);
+          console.log("Auth Store updated with user:", { username: data.username, id: data.id });
 
-              successMessage = 'Login successful!';
-              if (successBox && successText) {
-                  successText.textContent = successMessage;
-                  successBox.classList.remove('hidden');
-              }
+          successMessage = 'Login successful!';
+          if (successBox && successText) {
+              successText.textContent = successMessage;
+              successBox.classList.remove('hidden');
+          }
 
               setTimeout(() => {
                   goto('/');

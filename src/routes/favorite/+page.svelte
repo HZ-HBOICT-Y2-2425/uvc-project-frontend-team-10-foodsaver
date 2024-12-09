@@ -1,6 +1,14 @@
 <script lang="ts">
+    import { authStore } from './../../lib/stores/authStore.js';
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
+
+    let user_id = 1;
+    authStore.subscribe((state) => {
+        console.log("Auth store state in home page: ", state);
+        user_id = state.user?.id || 1;
+        console.log("user id is: ", user_id);
+    });
 
     let favoriteRecipeIds = [];
     let recipes = [];
@@ -8,12 +16,13 @@
     // get all favorite recipes' IDs
     async function fetchFavoriteRecipeIds() {
         const response = await fetch(
-            "http://localhost:3012/favorite-recipe-ids",
+            `http://localhost:3012/favorite-recipe-ids?user_id=${user_id}`,
         );
+
         if (response.ok) {
-            favoriteRecipeIds = await response.json();
-            // using recipes' IDs to fetch recipe
-            fetchRecipes();
+            const ids = await response.json();
+            favoriteRecipeIds = [...ids];
+            await fetchRecipes();
         } else {
             console.error("Failed to fetch favorite recipe IDs");
         }
@@ -21,7 +30,9 @@
 
     // fetch recipe details
     async function fetchRecipes() {
-        const apiKey = "4b94021e0008460490fb26e12c8ec0f0";
+        const apiKey = "2294333ae4bd4ac684e27677b3c30c63";
+        console.log("Fetching recipes with IDs:", favoriteRecipeIds);
+
         const requests = favoriteRecipeIds.map((id) =>
             fetch(
                 `https://api.spoonacular.com/recipes/${id}/information?apiKey=${apiKey}`,
@@ -29,12 +40,22 @@
         );
 
         const responses = await Promise.all(requests);
-
         const recipesData = await Promise.all(
-            responses.map((response) => response.json()),
+            responses.map(async (response) => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    console.error(
+                        `Error fetching recipe ID ${id}:`,
+                        response.statusText,
+                    );
+                    return null;
+                }
+            }),
         );
 
-        recipes = recipesData;
+        recipes = recipesData.filter(Boolean);
+        console.log("Fetched recipes:", recipes);
     }
 
     onMount(fetchFavoriteRecipeIds);

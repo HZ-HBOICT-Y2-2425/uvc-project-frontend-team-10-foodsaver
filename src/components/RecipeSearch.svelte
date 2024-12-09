@@ -2,34 +2,30 @@
     import { pantry } from "../lib/stores/pantryStore";
     import { goto } from "$app/navigation";
     import { derived } from "svelte/store";
+    import { onMount } from "svelte";
+    import { authStore } from '../lib/stores/authStore';
 
     let searchQuery = "";
     let searchActive = false;
     let selectedIngredients: string[] = [];
+    let recipes: any[] = []; // Will store the fetched recipes
+    let seasonalRecipes: any[] = []; // Will store the fetched seasonal recipes
+    let username = '';
 
-    const recipes = [
-        "Asian bowl",
-        "Brunch",
-        "Pancakes",
-        "Spaghetti",
-        "Salad",
-        "Tacos",
-        "Curry",
-        "Stew",
-        "Pizza",
-        "Soup",
-    ];
     const visibleRecipeCount = 6;
 
     let currentRecipeIndex1 = 0;
     let currentRecipeIndex2 = 0;
 
+    authStore.subscribe((state) => {
+    console.log("Auth store state in home page: ", state);
+    username = state.user?.username || '';
+  });
+
     // Trigger search function
     const searchRecipes = () => {
         if (!selectedIngredients.length) {
-            alert(
-                "Please select at least one ingredient to search for recipes.",
-            );
+            alert("Please select at least one ingredient to search for recipes.");
         } else {
             const ingredientsParam = selectedIngredients.join(",");
             goto(`/search?ingredients=${ingredientsParam}`);
@@ -55,7 +51,7 @@
         }
     };
 
-    // Recipe navigation functions for second section
+    // Recipe navigation functions for seasonal recipes
     const previousRecipes2 = () => {
         if (currentRecipeIndex2 > 0) {
             currentRecipeIndex2 -= 1;
@@ -63,7 +59,7 @@
     };
 
     const nextRecipes2 = () => {
-        if (currentRecipeIndex2 + visibleRecipeCount < recipes.length) {
+        if (currentRecipeIndex2 + visibleRecipeCount < seasonalRecipes.length) {
             currentRecipeIndex2 += 1;
         }
     };
@@ -93,6 +89,7 @@
     const nearestExpiringIngredients = derived(
         sortedPantry,
         ($sortedPantry) => {
+ feature/expiring-ingredients-arrows
             return $sortedPantry.slice(0, maxExpiredIngredients); //Get a larger list if necessary
         }
     );
@@ -115,11 +112,121 @@
 
 
     
+
+            return $sortedPantry.slice(0, 5);
+        }
+    );
+
+    // Subscribe to nearestExpiringIngredients and fetch recipes whenever it changes
+    nearestExpiringIngredients.subscribe(async (ingredients) => {
+        if (ingredients.length > 0) {
+            await fetchRecipes(ingredients);
+        } else {
+            recipes = [];
+        }
+    });
+
+    // Function to fetch recipes based on ingredients
+    async function fetchRecipes(ingredients) {
+        const expiringIngredients = ingredients.map(item => item.name);
+        let fetchedRecipes = new Set();
+
+        for (const ingredient of expiringIngredients) {
+            try {
+                // Fetch recipes with the ingredient
+                const response = await fetch(`https://www.themealdb.com/api/json/v1/1/filter.php?i=${ingredient}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.meals) {
+                        // Loop through each meal to fetch detailed information
+                        for (const meal of data.meals) {
+                            try {
+                                const mealResponse = await fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal.idMeal}`);
+                                if (mealResponse.ok) {
+                                    const mealData = await mealResponse.json();
+                                    if (mealData.meals && mealData.meals[0]?.strInstructions) {
+                                        // Only add the recipe if instructions are available
+                                        fetchedRecipes.add(JSON.stringify(mealData.meals[0]));
+                                    }
+                                } else {
+                                    console.error("Failed to fetch detailed recipe info:", meal.idMeal, mealResponse.statusText);
+                                }
+                            } catch (error) {
+                                console.error("Error fetching detailed recipe info:", meal.idMeal, error);
+                            }
+                        }
+                    }
+                } else {
+                    console.error("Failed to fetch recipes for ingredient:", ingredient, response.statusText);
+                }
+            } catch (error) {
+                console.error("Error fetching recipes for ingredient:", ingredient, error);
+            }
+        }
+
+        // Convert Set back to an array of objects, removing duplicates
+        recipes = Array.from(fetchedRecipes).map(recipeStr => JSON.parse(recipeStr));
+    }
+
+    // Fetch seasonal recipes on component mount
+    onMount(async () => {
+        try {
+            // Determine the current season
+            const month = new Date().getMonth() + 1; // Get current month (0-based, so add 1)
+            let seasonalTag = '';
+
+            // Assign tags based on the current month
+            if (month >= 3 && month <= 5) {
+                seasonalTag = 'asparagus'; // Spring
+            } else if (month >= 6 && month <= 8) {
+                seasonalTag = 'salad'; // Summer
+            } else if (month >= 9 && month <= 11) {
+                seasonalTag = 'pumpkin'; // Fall
+            } else {
+                seasonalTag = 'beef'; // Winter
+            }
+
+            // Fetch recipes with the seasonal tag
+            const seasonalResponse = await fetch(`https://www.themealdb.com/api/json/v1/1/filter.php?i=${seasonalTag}`);
+            if (seasonalResponse.ok) {
+                const seasonalData = await seasonalResponse.json();
+                let seasonalRecipesSet = new Set();
+
+                // Fetch detailed recipe info to check for instructions
+                for (const meal of seasonalData.meals) {
+                    try {
+                        const mealResponse = await fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal.idMeal}`);
+                        if (mealResponse.ok) {
+                            const mealData = await mealResponse.json();
+                            if (mealData.meals && mealData.meals[0]?.strInstructions) {
+                                seasonalRecipesSet.add(JSON.stringify(mealData.meals[0]));
+                            }
+                        } else {
+                            console.error("Failed to fetch detailed seasonal recipe info:", meal.idMeal, mealResponse.statusText);
+                        }
+                    } catch (error) {
+                        console.error("Error fetching detailed seasonal recipe info:", meal.idMeal, error);
+                    }
+                }
+
+                // Update seasonalRecipes with those that have instructions
+                seasonalRecipes = Array.from(seasonalRecipesSet).map(recipeStr => JSON.parse(recipeStr));
+            } else {
+                console.error("Failed to fetch seasonal recipes:", seasonalResponse.statusText);
+            }
+        } catch (error) {
+            console.error("Error fetching seasonal recipes:", error);
+        }
+    });
+
 </script>
+
+
+
 
 <div class="container mx-auto mt-8 px-4 lg:px-6 text-center">
     <h2 class="text-3xl font-bold text-green-800 italic mb-6">
-        Hello, "username"!
+        Hello, {username}!
     </h2>
 
     <!-- Search Bar Section -->
@@ -131,7 +238,7 @@
                 <input
                     type="text"
                     bind:value={searchQuery}
-                    placeholder="Add ingredients/recipes"
+                    placeholder="Select ingredients from your pantry"
                     on:focus={() => (searchActive = true)}
                     class="w-full p-4 pr-12 rounded-md shadow-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
@@ -273,11 +380,12 @@
         alt="Leaf Background"
     />
 
-    <!-- Recipes Section -->
-    <div class="recipes-with-ingredients-section mb-8 text-left">
-        <h3 class="text-2xl font-semibold mb-4">
-            Popular Recipes:
-        </h3>
+   <!-- Recipes Section -->
+<div class="recipes-with-ingredients-section mb-8 text-left">
+    <h3 class="text-2xl font-semibold mb-4">
+        Recipes with your expiring ingredients:
+    </h3>
+    {#if recipes.length > 0}
         <div class="flex items-center space-x-4 overflow-x-auto">
             <button
                 on:click={previousRecipes1}
@@ -304,12 +412,12 @@
                         class="recipe-card border p-4 rounded-lg text-center shadow-md w-40"
                     >
                         <img
-                            src="/asian-bowl.jpg"
-                            alt={recipe}
+                            src={recipe.strMealThumb}
+                            alt={recipe.strMeal}
                             class="w-full h-24 object-cover rounded-md mb-2"
                             on:error={handleImageError}
                         />
-                        <p class="font-semibold text-lg mb-2">{recipe}</p>
+                        <p class="font-semibold text-lg mb-2">{recipe.strMeal}</p>
                         <button
                             class="mt-2 bg-white hover:bg-red-500 hover:text-white border border-red-500 rounded-full p-2"
                         >
@@ -338,73 +446,81 @@
                 </svg>
             </button>
         </div>
-    </div>
-    <div class="recipes-with-ingredients-section mb-8 text-left">
-        <h3 class="text-2xl font-semibold mb-4">
-            Seosonal Recipes:
-        </h3>
-        <div class="flex items-center space-x-4 overflow-x-auto">
-            <button
-                on:click={previousRecipes1}
-                class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100"
+    {:else}
+        <p class="text-gray-600">No recipes found for your expiring ingredients. Try adding more items to your pantry.</p>
+    {/if}
+</div>
+
+
+    <!-- Seasonal Recipes Section -->
+<div class="recipes-with-ingredients-section mb-8 text-left">
+    <h3 class="text-2xl font-semibold mb-4">
+        Seasonal Recipes:
+    </h3>
+    <div class="flex items-center space-x-4 overflow-x-auto">
+        <button
+            on:click={previousRecipes2}
+            class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100"
+        >
+            <svg
+                class="w-4 h-4"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
             >
-                <svg
-                    class="w-4 h-4"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M15 19l-7-7 7-7"
+                />
+            </svg>
+        </button>
+        <div class="flex space-x-4">
+            {#each seasonalRecipes.slice(currentRecipeIndex2, currentRecipeIndex2 + visibleRecipeCount) as recipe}
+                <div
+                    class="recipe-card border p-4 rounded-lg text-center shadow-md w-40"
                 >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M15 19l-7-7 7-7"
+                    <img
+                        src={recipe.strMealThumb}
+                        alt={recipe.strMeal}
+                        class="w-full h-24 object-cover rounded-md mb-2"
+                        on:error={handleImageError}
                     />
-                </svg>
-            </button>
-            <div class="flex space-x-4">
-                {#each recipes.slice(currentRecipeIndex1, currentRecipeIndex1 + visibleRecipeCount) as recipe}
-                    <div
-                        class="recipe-card border p-4 rounded-lg text-center shadow-md w-40"
+                    <p class="font-semibold text-lg mb-2">{recipe.strMeal}</p>
+                    <button
+                        class="mt-2 bg-white hover:bg-red-500 hover:text-white border border-red-500 rounded-full p-2"
                     >
-                        <img
-                            src="/asian-bowl.jpg"
-                            alt={recipe}
-                            class="w-full h-24 object-cover rounded-md mb-2"
-                            on:error={handleImageError}
-                        />
-                        <p class="font-semibold text-lg mb-2">{recipe}</p>
-                        <button
-                            class="mt-2 bg-white hover:bg-red-500 hover:text-white border border-red-500 rounded-full p-2"
-                        >
-                            <i class="fas fa-heart"></i>
-                        </button>
-                    </div>
-                {/each}
-            </div>
-            <button
-                on:click={nextRecipes1}
-                class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100"
-            >
-                <svg
-                    class="w-4 h-4"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M9 5l7 7-7 7"
-                    />
-                </svg>
-            </button>
+                        <i class="fas fa-heart"></i>
+                    </button>
+                </div>
+            {/each}
         </div>
+        <button
+            on:click={nextRecipes2}
+            class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100"
+        >
+            <svg
+                class="w-4 h-4"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5l7 7-7 7"
+                />
+            </svg>
+        </button>
     </div>
 </div>
+</div>
+
+
 
 <style>
     .dropdown {

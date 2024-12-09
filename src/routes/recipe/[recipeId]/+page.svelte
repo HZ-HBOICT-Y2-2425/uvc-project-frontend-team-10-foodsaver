@@ -1,5 +1,13 @@
 <script lang="ts">
+	import { authStore } from './../../../lib/stores/authStore.js';
   import { goto } from "$app/navigation";
+
+  let user_id = 1;
+  authStore.subscribe((state) => {
+    console.log("Auth store state in home page: ", state);
+    user_id = state.user?.id || 1;
+    console.log("user id is: ", user_id);
+  });
 
   export let data;
   const { recipe } = data.props;
@@ -16,47 +24,54 @@
   }
 
   async function checkFavoriteStatus() {
-    const response = await fetch(`http://localhost:3012/check-favorite/${recipe.id}`);
-    const data = await response.json();
-    isFavorite = data.isFavorite;
-  }
+    const response = await fetch(
+        `http://localhost:3012/check-favorite/${recipe.id}?user_id=${user_id}`
+    );
+
+    if (response.ok) {
+        const data = await response.json();
+        isFavorite = data.isFavorite;
+    } else {
+        console.error("Failed to check favorite status");
+    }
+}
 
   checkFavoriteStatus();
 
   async function toggleFavorite() {
     if (isFavorite) {
-      const response = await fetch(`http://localhost:3012/favorites/${recipe.id}`, {
-        method: "DELETE",
-      });
+        const response = await fetch(`http://localhost:3012/favorites/${recipe.id}`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id }),
+        });
 
-      if (response.ok) {
-        alert("This recipe is removed from favorites");
-        isFavorite = false;
-      } else {
-        const error = await response.json();
-        alert(`Failed to remove from favorites: ${error.error}`);
-      }
+        if (response.ok) {
+            alert("This recipe is removed from favorites");
+            isFavorite = false;
+        } else {
+            const error = await response.json();
+            alert(`Failed to remove from favorites: ${error.error}`);
+        }
     } else {
-      const payload = { recipe_id: recipe.id };
-      const response = await fetch("http://localhost:3012/favorites", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+        const response = await fetch("http://localhost:3012/favorites", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ recipe_id: recipe.id, user_id }),
+        });
 
-      if (response.ok) {
-        alert("This recipe is added to favorites");
-        isFavorite = true;
-      } else {
-        const error = await response.json();
-        alert(`Failed to add to favorites: ${error.error}`);
-      }
+        if (response.ok) {
+            alert("This recipe is added to favorites");
+            isFavorite = true;
+        } else {
+            const error = await response.json();
+            alert(`Failed to add to favorites: ${error.error}`);
+        }
     }
 
-    goto("/favorite");
-
     checkFavoriteStatus();
-  }
+}
+
 
   function getSteps(instructions: string) {
     const parser = new DOMParser();
@@ -106,10 +121,18 @@
     countdowns = [...countdowns]; // Trigger reactivity
   }
 
-  function updateCountdownInput(index: number, value: string) {
+  function updateCountdownMinutes(index: number, value: string) {
     countdowns[index] = {
       ...countdowns[index],
-      input: Number(value),
+      minutes: Number(value),
+    };
+    countdowns = [...countdowns]; // Trigger reactivity
+  }
+
+  function updateCountdownSeconds(index: number, value: string) {
+    countdowns[index] = {
+      ...countdowns[index],
+      seconds: Number(value),
     };
     countdowns = [...countdowns]; // Trigger reactivity
   }
@@ -182,16 +205,28 @@
                 <span class="text-lg">⏰</span>
                 <input
                   type="number"
-                  placeholder="Enter time (s)"
-                  value={countdowns[index]?.input || ""}
-                  on:input={(e) => updateCountdownInput(index, e.target.value)}
-                  class="border border-gray-300 rounded px-2 w-36"
+                  placeholder="Min"
+                  min="0"
+                  value={countdowns[index]?.minutes || ""}
+                  on:input={(e) => updateCountdownMinutes(index, e.target.value)}
+                  class="border border-gray-300 rounded px-2 w-20"
+                />
+                <span>:</span>
+                <input
+                  type="number"
+                  placeholder="Sec"
+                  min="0"
+                  max="59"
+                  value={countdowns[index]?.seconds || ""}
+                  on:input={(e)=>updateCountdownSeconds(index, e.target.value)}
+                  class="border border-gray-300 rounded px-2 w-20"
                 />
                 <button
                   on:click={() =>
                     startCountdown(
                       index,
-                      Number(countdowns[index]?.input || 0),
+                      (Number(countdowns[index]?.minutes || 0) * 60) +
+                      Number(countdowns[index]?.seconds || 0)
                     )}
                   class="bg-blue-500 text-white px-3 py-1 rounded"
                 >
@@ -199,14 +234,16 @@
                 </button>
                 {#if countdowns[index] && countdowns[index].time !== null}
                   <p class="text-gray-700">
-                    Time left: {countdowns[index].time}s
+                    Time left: {Math.floor(countdowns[index].time / 60)}m
+                    {countdowns[index].time % 60}s
                   </p>
-                {:else if countdowns[index]?.input}
+                {:else if countdowns[index]?.minutes || countdowns[index]?.seconds}
                   <p class="text-gray-700">
-                    Time left: {countdowns[index].input}s
+                    Time left: {countdowns[index].minutes || 0}m
+                    {countdowns[index]?.seconds || 0}s
                   </p>
                 {:else}
-                  <p class="text-gray-700">Time left: s</p>
+                  <p class="text-gray-700">Time left: 0m 0s</p>
                 {/if}
               </div>
             {/if}

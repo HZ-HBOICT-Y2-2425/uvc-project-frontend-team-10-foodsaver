@@ -1,33 +1,74 @@
 import { writable } from 'svelte/store';
+import { authStore } from './authStore';
 
-const defaultPantry = [
-  { name: 'onion', weight: 100, expirationDate: '2024-01-01' },
-  { name: 'garlic', weight: 50, expirationDate: '2024-01-05' },
-  { name: 'salt', weight: 200, expirationDate: '2025-01-01' },
-  { name: 'pepper', weight: 30, expirationDate: '2024-02-01' }
-]; // Default pantry items with weight and expiration date
+const pantry = writable([]);
 
-let storedPantry;
+let userId = null;
 
-if (typeof window !== 'undefined') {
-  try {
-    // Safely parse the pantry data from localStorage
-    const pantryData = localStorage.getItem('pantry');
-    storedPantry = pantryData ? JSON.parse(pantryData) : defaultPantry;
-  } catch (error) {
-    console.error('Error parsing pantry from localStorage:', error);
-    storedPantry = defaultPantry; // Fallback to default pantry
+// Subscribe to authStore to get user ID
+authStore.subscribe((state) => {
+  if (state.isLoggedIn && state.user) {
+    userId = state.user.id;
   }
-} else {
-  // Fallback for server-side rendering
-  storedPantry = defaultPantry;
+});
+
+// Fetch pantry data from the backend service
+async function fetchPantry() {
+  if (!userId) return;
+  try {
+    const response = await fetch('http://localhost:3000/pantry', {
+      headers: {
+        'x-user-id': userId
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`Error fetching pantry data: ${response.statusText}`);
+    }
+    const data = await response.json();
+    pantry.set(data);
+  } catch (error) {
+    console.error('Error fetching pantry data:', error);
+  }
 }
 
-export const pantry = writable(storedPantry);
+// Update pantry data on the backend service
+async function updatePantry(newPantry) {
+  if (!userId) return;
+  try {
+    const response = await fetch('http://localhost:3000/pantry', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-user-id': userId
+      },
+      body: JSON.stringify(newPantry)
+    });
+    if (!response.ok) {
+      throw new Error(`Error updating pantry data: ${response.statusText}`);
+    }
+    pantry.set(newPantry);
+  } catch (error) {
+    console.error('Error updating pantry data:', error);
+  }
+}
 
-// Save to localStorage whenever the pantry changes
-if (typeof window !== 'undefined') {
-  pantry.subscribe((value) => {
+// Fetch pantry data initially
+fetchPantry();
+
+// Load pantry data from localStorage if available
+if (typeof localStorage !== 'undefined') {
+  const savedPantry = JSON.parse(localStorage.getItem('pantry'));
+  if (savedPantry) {
+    pantry.set(savedPantry);
+  }
+}
+
+// Subscribe to pantry store changes and update the backend service and localStorage
+pantry.subscribe(async (value) => {
+  await updatePantry(value);
+  if (typeof localStorage !== 'undefined') {
     localStorage.setItem('pantry', JSON.stringify(value));
-  });
-}
+  }
+});
+
+export { pantry, fetchPantry, updatePantry };

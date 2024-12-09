@@ -2,6 +2,7 @@
     import { pantry } from "../lib/stores/pantryStore";
     import { goto } from "$app/navigation";
     import { derived } from "svelte/store";
+    import { user } from "../lib/stores/authStore"; // Import user store
 
     let searchQuery = "";
     let searchActive = false;
@@ -82,11 +83,14 @@
             );
     });
 
-    // Get the top 5 ingredients with the nearest expiration date
+    // Get the top 5 ingredients with the nearest expiration date for the logged-in user
     const nearestExpiringIngredients = derived(
-        sortedPantry,
-        ($sortedPantry) => {
-            return $sortedPantry.slice(0, 5);
+        [sortedPantry, user],
+        ([$sortedPantry, $user]) => {
+            if (!$user) return []; // Ensure user is not null
+            return $sortedPantry
+                .filter((item) => item.userId === $user.id)
+                .slice(0, 5);
         },
     );
 </script>

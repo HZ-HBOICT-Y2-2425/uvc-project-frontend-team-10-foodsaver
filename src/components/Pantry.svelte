@@ -1,7 +1,9 @@
 <script lang="ts">
-  import { pantry } from "../lib/stores/pantryStore";
+  import { pantry, updatePantry } from "../lib/stores/pantryStore";
   import { onMount } from "svelte";
   import { writable } from "svelte/store";
+  import { API_KEY } from "../lib/config";
+  import { user } from "../lib/stores/authStore"; // Import user store
 
   let ingredient = writable<string>("");
   let weight = writable<number>(0);
@@ -12,8 +14,8 @@
   let editMode = writable<boolean>(false);
   let editIndex = writable<number | null>(null);
   let removeManually = writable<boolean>(false);
-
-  const API_KEY = "4b94021e0008460490fb26e12c8ec0f0"; // Replace with your actual API key
+  let isUserLoaded = false;
+  let unsubscribe;
 
   // Fetch ingredients from the API
   onMount(async () => {
@@ -34,24 +36,52 @@
     }
   });
 
-  // Save ingredient details
-  const saveIngredientDetails = (): void => {
-    pantry.update((items) => {
-      const newItems = [...items];
-      newItems.push({
-        name: $selectedIngredient,
-        weight: $weight,
-        expirationDate: $expirationDate,
-      });
-      return newItems;
+  onMount(() => {
+    unsubscribe = user.subscribe((value) => {
+      if (value) {
+        isUserLoaded = true;
+        unsubscribe();
+      }
     });
+  });
+
+  onMount(() => {
+    // Load pantry data from localStorage if available
+    if (typeof localStorage !== "undefined") {
+      const savedPantry = JSON.parse(localStorage.getItem("pantry") || "[]");
+      pantry.set(savedPantry); // Set pantry data from localStorage
+    }
+  });
+
+  const saveIngredientDetails = async (): void => {
+    if (!isUserLoaded) return;
+
+    // Create new ingredient object
+    const newIngredient = {
+      name: $selectedIngredient,
+      weight: $weight,
+      expirationDate: $expirationDate,
+      userId: $user.id, // Include user ID
+    };
+
+    // Update pantry store locally
+    pantry.update((items) => {
+      const updatedItems = [...items, newIngredient];
+      return updatedItems;
+    });
+
+    // Clear input fields and reset state
     ingredient.set("");
     weight.set(0);
     expirationDate.set("");
     addManually.set(false);
+
+    // Sync with backend and localStorage
+    await updatePantry([...$pantry, newIngredient]);
   };
 
   const editIngredientDetails = (index: number): void => {
+    if (!isUserLoaded) return;
     editIndex.set(index);
     const item = $pantry[index];
     selectedIngredient.set(item.name);
@@ -60,7 +90,8 @@
     editMode.set(true);
   };
 
-  const saveEditedIngredientDetails = (): void => {
+  const saveEditedIngredientDetails = async (): void => {
+    if (!isUserLoaded) return;
     pantry.update((items) => {
       const newItems = [...items];
       const index = $editIndex;
@@ -69,21 +100,37 @@
           name: $selectedIngredient,
           weight: $weight,
           expirationDate: $expirationDate,
+          userId: $user.id, // Include user ID
         };
       }
       return newItems;
     });
+
+    // Clear input fields and reset state
     ingredient.set("");
     weight.set(0);
     expirationDate.set("");
     editMode.set(false);
     editIndex.set(null);
+
+    // Sync with backend and localStorage
+    await updatePantry($pantry);
   };
 
   // Remove ingredient from pantry store
-  const removeIngredient = (itemName: string): void => {
-    pantry.update((items) => items.filter((item) => item.name !== itemName));
+  const removeIngredient = async (itemName: string): void => {
+    if (!isUserLoaded) return;
+
+    // Remove the ingredient from pantry store
+    pantry.update((items) => items.filter((item) => item.name !== itemName && item.userId === $user.id));
+
+    // Close the remove modal
+    removeManually.set(false);
+
+    // Sync with backend and localStorage
+    await updatePantry($pantry.filter((item) => item.name !== itemName && item.userId === $user.id));
   };
+
 </script>
 
 <!-- Leafs picture -->
@@ -100,54 +147,55 @@
 />
 
 <!-- Pantry Layout -->
-<div class="p-4 max-w-3xl mx-auto bg-white shadow-md rounded-lg">
-  <!-- Top Section: Title and Buttons -->
-  <div class="flex flex-col md:flex-row justify-between items-center mb-6">
-    <h2 class="text-2xl font-bold text-green-600 mb-4 md:mb-0"></h2>
-    <div class="flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0">
-      {#if $pantry.length > 0}
-        <button
-          on:click={() => removeManually.set(true)}
-          class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-green-600 w-full sm:w-auto"
-        >
-          Remove Ingredients
-        </button>
-      {/if}
-      <button
-        on:click={() => addManually.set(true)}
-        class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 w-full sm:w-auto"
+{#if isUserLoaded}
+  <div class="p-4 max-w-3xl mx-auto bg-white shadow-md rounded-lg">
+    <!-- Top Section: Title and Buttons -->
+    <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+      <h2 class="text-2xl font-bold text-green-600 mb-4 md:mb-0"></h2>
+      <div
+        class="flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0"
       >
-        Add Manually
-      </button>
+        {#if $pantry.length > 0}
+          <button
+            on:click={() => removeManually.set(true)}
+            class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-green-600 w-full sm:w-auto"
+          >
+            Remove Ingredients
+          </button>
+        {/if}
+        <button
+          on:click={() => addManually.set(true)}
+          class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 w-full sm:w-auto"
+        >
+          Add Manually
+        </button>
+      </div>
+    </div>
+
+    <!-- Pantry Ingredients List (Circular) -->
+    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 mb-6">
+      {#each $pantry.filter((item) => item.userId === $user.id) as item, index (item.name + item.expirationDate + item.weight)}
+        <div class="flex flex-col items-center space-y-2">
+          <button
+            on:click={() => editIngredientDetails(index)}
+            class="bg-gray-200 w-16 h-16 rounded-full flex items-center justify-center"
+          >
+            <img
+              src="/fridge-solid-24.png"
+              alt={item.name}
+              class="w-10 h-10 object-cover"
+            />
+          </button>
+          <span class="text-gray-700 text-sm">{item.name}</span>
+          <span class="text-gray-500 text-xs">Weight: {item.weight}g</span>
+          <span class="text-gray-500 text-xs"
+            >Expires: {item.expirationDate}</span
+          >
+        </div>
+      {/each}
     </div>
   </div>
-
-  <!-- Pantry Ingredients List (Circular) -->
-  <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 mb-6">
-    {#each $pantry as item, index (item.name + item.expirationDate + index)}
-      <div class="flex flex-col items-center space-y-2">
-        <!-- Ingredient Circle with Placeholder Image -->
-        <button
-          on:click={() => editIngredientDetails(index)}
-          class="bg-gray-200 w-16 h-16 rounded-full flex items-center justify-center"
-        >
-          <img
-            src="/fridge-solid-24.png"
-            alt={item.name}
-            class="w-10 h-10 object-cover"
-          />
-        </button>
-        <!-- Ingredient Name -->
-        <span class="text-gray-700 text-sm">{item.name}</span>
-        <!-- Ingredient Weight -->
-        <span class="text-gray-500 text-xs">Weight: {item.weight}g</span>
-        <!-- Ingredient Expiration Date -->
-        <span class="text-gray-500 text-xs">Expires: {item.expirationDate}</span
-        >
-      </div>
-    {/each}
-  </div>
-</div>
+{/if}
 
 <!-- Add/Edit Ingredients Manually -->
 {#if $addManually || $editMode}
@@ -216,7 +264,7 @@
     <div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
       <h2 class="text-2xl font-bold text-green-600 mb-4">Remove Ingredients</h2>
       <div class="grid grid-cols-2 gap-4">
-        {#each $pantry as item, index (item.name + item.expirationDate + index)}
+        {#each $pantry.filter((item) => item.userId === $user.id) as item, index (item.name + item.expirationDate + index)}
           <div class="flex items-center justify-between p-2 border rounded-md">
             <span>{item.name}</span>
             <button

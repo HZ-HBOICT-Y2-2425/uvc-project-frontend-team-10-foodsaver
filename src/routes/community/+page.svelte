@@ -25,9 +25,9 @@
 <!-- Main Content -->
 <div class="container mx-auto mt-6 p-6">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold">Forum</h1>
+        <h1 class="text-3xl font-bold text-green-700">Forum</h1>
         <button
-            class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600"
+            class="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600"
             on:click={goToCreatePost}
         >
             Add New Post

@@ -78,10 +78,41 @@
             );
     });
 
-    // Get the top 5 ingredients with the nearest expiration date
+
+ // Reactive variables
+ const visibleIngredientCount = 5; // Number of ingredients visible at a time
+ const switchingIngredients = 1; //Number of ingredients switched each time the arrow is clicked
+ const maxExpiredIngredients = 50 //Max number of ingredients stored in the home's expiring ingredients
+    let currentIngredientIndex = 0; // Initial index
+
+    // Ingredients list
     const nearestExpiringIngredients = derived(
         sortedPantry,
         ($sortedPantry) => {
+ feature/expiring-ingredients-arrows
+            return $sortedPantry.slice(0, maxExpiredIngredients); //Get a larger list if necessary
+        }
+    );
+
+    // Function to go to previous ingredients
+    const previousIngredients = () => {
+        if (currentIngredientIndex > 0) {
+            currentIngredientIndex -= switchingIngredients; // Move backwards in blocks of switchingIngredients (1)
+        }
+    };
+
+    // Function to go to the next ingredients
+    const nextIngredients = () => {
+        if (currentIngredientIndex + switchingIngredients < 20) {
+            currentIngredientIndex += switchingIngredients; // Move backwards in blocks of switchingIngredients (1)
+        }
+    };
+
+
+
+
+    
+
             return $sortedPantry.slice(0, 5);
         }
     );
@@ -187,6 +218,7 @@
             console.error("Error fetching seasonal recipes:", error);
         }
     });
+
 </script>
 
 
@@ -271,35 +303,70 @@
         </div>
     </div>
 
-    <!-- Expiring Ingredients Section -->
     <div class="expiring-ingredients-section mb-8 text-left">
         <h3 class="text-2xl font-semibold mb-4">Ingredients Expiring Soon</h3>
-        <div class="flex items-center space-x-4 overflow-x-auto">
-            {#each $nearestExpiringIngredients as item, index (item.id || index)}
-                {#if (new Date(item.expirationDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24) <= 3}
-                    <div class="flex flex-col items-center space-y-2">
-                        <div
-                            class="bg-gray-200 w-20 h-20 rounded-full flex items-center justify-center"
-                        >
-                            <img
-                                src="/fridge-solid-24.png"
-                                alt={item.name}
-                                class="w-12 h-12 object-cover"
-                            />
+        <div class="flex items-center space-x-4">
+            <!-- Left Arrow Button -->
+            <button
+                on:click={previousIngredients}
+                class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={currentIngredientIndex === 0}
+            >
+                <svg
+                    class="w-4 h-4"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M15 19l-7-7 7-7"
+                    />
+                </svg>
+            </button>
+    
+            <!-- List of Ingredients -->
+            <div class="flex items-center space-x-4 h-60 overflow-x-auto">
+                {#each $nearestExpiringIngredients.slice(currentIngredientIndex, currentIngredientIndex + visibleIngredientCount) as item}
+                    {#if (new Date(item.expirationDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24) <= 3}
+                        <div class="flex flex-col items-center space-y-2">
+                            <div class="bg-gray-200 w-20 h-20 rounded-full flex items-center justify-center">
+                                <img src="/fridge-solid-24.png" alt={item.name} class="w-12 h-12 object-cover" />
+                            </div>
+                            <span class="text-gray-700 text-sm">{item.name}</span>
+                            <span class="text-gray-500 text-xs">Weight: {item.weight}g</span>
+                            <span class="text-gray-500 text-xs">Expires: {item.expirationDate}</span>
                         </div>
-                        <span class="text-gray-700 text-sm">{item.name}</span>
-                        <span class="text-gray-500 text-xs"
-                            >Weight: {item.weight}g</span
-                        >
-                        <span class="text-gray-500 text-xs"
-                            >Expires: {item.expirationDate}</span
-                        >
-                    </div>
-                {/if}
-            {/each}
+                    {/if}
+                {/each}
+            </div>
+    
+            <!-- Right Arrow Button -->
+            <button
+                on:click={nextIngredients}
+                class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={currentIngredientIndex + visibleIngredientCount >= $nearestExpiringIngredients.length}
+            >
+                <svg
+                    class="w-4 h-4"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 5l7 7-7 7"
+                    />
+                </svg>
+            </button>
         </div>
     </div>
-
     <!-- Leafs picture -->
     <img
         class="LeafBackgroundRemoved9 w-72 h-60 left-[-80.30px] top-[800px] absolute origin-top-left rotate-[0.0deg] rounded-xl -z-10"

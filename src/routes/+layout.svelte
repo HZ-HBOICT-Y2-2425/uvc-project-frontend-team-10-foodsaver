@@ -83,8 +83,19 @@
 </div>
 {/if}
 
-<!-- Main Content -->
-<div class="layout flex flex-col min-h-screen">
+<div class="layout flex flex-col min-h-screen relative">
+  <img
+    class="LeafBackgroundRemoved9 w-72 h-60 left-[-80.30px] top-[300px] absolute origin-top-left rotate-[0.0deg] rounded-xl -z-10"
+    src="../../../leaf-background2.png"
+    alt="Leaf Background"
+  />
+
+  <img
+    class="LeafBackgroundRemoved9 w-72 h-60 right-[-90px] top-[230px] absolute origin-top-left rotate-[270deg] rounded-xl -z-10"
+    src="../../../leaf-background1.png"
+    alt="Leaf Background"
+  />
+
   <main class="flex-1 p-4">
     <slot />
   </main>
@@ -131,6 +142,7 @@
     </div>
   </footer>
 </div>
+
 
 <style>
   footer {

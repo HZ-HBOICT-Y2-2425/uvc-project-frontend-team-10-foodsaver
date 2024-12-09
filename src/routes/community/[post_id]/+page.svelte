@@ -80,7 +80,7 @@
         <div class="post-card border p-4 rounded-lg shadow-md">
             {#if isEditing}
                 <!-- Edit Mode -->
-                <h1 class="text-3xl font-bold mb-4">Edit Post</h1>
+                <h1 class="text-3xl text-green-700 font-bold mb-4">Edit Post</h1>
                 <input
                     type="text"
                     class="w-full p-2 border border-gray-300 rounded mb-4"

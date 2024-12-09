@@ -44,7 +44,7 @@
 
 <!-- Create Post Form -->
 <div class="container mx-auto mt-6 p-6">
-    <h1 class="text-3xl font-bold mb-6">Create a New Post</h1>
+    <h1 class="text-green-700 text-3xl font-bold mb-6">Create a New Post</h1>
 
     <form on:submit|preventDefault={handleSubmit} class="space-y-4">
         <div>
@@ -73,7 +73,7 @@
         <div class="flex justify-between mt-4">
             <button
                 type="submit"
-                class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600"
+                class="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600"
             >
                 Create Post
             </button>

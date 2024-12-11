@@ -35,7 +35,7 @@ export function login(user, token) {
   });
 }
 
-export function logout() {
+export function logout() {a
   console.log("Logging out...");
   authStore.set({
     isLoggedIn: false,

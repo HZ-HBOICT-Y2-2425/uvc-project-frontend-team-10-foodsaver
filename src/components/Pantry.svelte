@@ -2,6 +2,8 @@
   import { onMount } from "svelte";
   import { writable } from "svelte/store";
   import { authStore } from "../lib/stores/authStore"; // Auth store for user authentication
+  import { pantryStore } from "../lib/stores/pantryStore";
+  import { onDestroy } from "svelte";
 
   // Writable stores to manage input states
   let ingredient = writable<string>("");
@@ -9,9 +11,11 @@
   let expirationDate = writable<string>("");
   let addManually = writable<boolean>(false);
   let selectedIngredient = writable<string>("");
+  let selectedIngredientOriginal = writable<string>("");
   let editMode = writable<boolean>(false);
   let editIndex = writable<number | null>(null);
   let removeManually = writable<boolean>(false);
+  let warningMessage = writable<string>("");
 
   // Default user ID to 1, will be updated from the auth store
   let user_id = 1;
@@ -25,6 +29,16 @@
 
   let pantry = [];
 
+  // Subscribe to the store to get pantry data
+  const unsubscribe = pantryStore.subscribe((data) => {
+    pantry = data;
+  });
+
+  onDestroy(() => {
+    // Unsubscribe to avoid memory leaks
+    unsubscribe();
+  });
+
   // get all favorite recipes' IDs
   async function fetchPantryItems() {
     const response = await fetch(
@@ -33,8 +47,21 @@
     const data = await response.json();
     if (response.ok) {
       pantry = data;
+      pantryStore.set(pantry);
+      checkExpiredIngredients();
     } else {
       console.error("Error fetching pantry items:", data.error);
+    }
+  }
+
+  // Check for expired ingredients and remove them
+  async function checkExpiredIngredients() {
+    const now = new Date().getTime();
+    for (const item of pantry) {
+      if (new Date(item.expiration_date).getTime() < now) {
+        await removeIngredient(item.name);
+        warningMessage.set(`The ingredient "${item.name}" went bad. :(`);
+      }
     }
   }
 
@@ -51,6 +78,18 @@
       expiration_date: $expirationDate,
       user_id: user_id, // Automatically associate the logged-in user
     };
+
+    // Check if the expiration date is in the past
+    if (new Date(newItem.expiration_date).getTime() < new Date().getTime()) {
+      warningMessage.set("Please input a valid expiration date.");
+      return;
+    }
+
+    // Check if the ingredient already exists in the pantry
+    if (pantry.some(item => item.name.toLowerCase() === newItem.name.toLowerCase())) {
+      alert("This ingredient already exists in your pantry.");
+      return;
+    }
 
     try {
       const response = await fetch(
@@ -83,17 +122,23 @@
     }
   };
 
-  const saveEditedIngredientDetails = async (name): Promise<void> => {
+  const saveEditedIngredientDetails = async (): Promise<void> => {
+    const selectedIngredient = $selectedIngredientOriginal;
     const updateItem = {
-      name: $selectedIngredient,
-      weight: $weight,
+      quantity: $weight,
       expiration_date: $expirationDate,
       user_id: user_id, // Automatically associate the logged-in user
     };
 
+    // Check if the expiration date is in the past
+    if (new Date(updateItem.expiration_date).getTime() < new Date().getTime()) {
+      warningMessage.set("Please input a valid expiration date.");
+      return;
+    }
+
     try {
       const response = await fetch(
-        `http://localhost:3016/pantry/update/${name}?user_id=${user_id}`,
+        `http://localhost:3016/pantry/update/${selectedIngredient}?user_id=${user_id}`,
         {
           method: "PUT",
           headers: {
@@ -145,6 +190,23 @@
       console.error("Error removing ingredient:", error);
     }
   };
+
+  // Function to open the "Add Manually" form
+  const openAddManually = () => {
+    ingredient.set("");
+    weight.set(0);
+    expirationDate.set("");
+    addManually.set(true);
+  };
+
+  // Function to open the "Edit Ingredient" form
+  const openEditIngredient = (item) => {
+    selectedIngredient.set(item.name);
+    selectedIngredientOriginal.set(item.name);
+    weight.set(item.quantity);
+    expirationDate.set(item.expiration_date);
+    editMode.set(true);
+  };
 </script>
 
 <!-- Leafs picture -->
@@ -175,7 +237,7 @@
         </button>
       {/if}
       <button
-        on:click={() => addManually.set(true)}
+        on:click={openAddManually}
         class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 w-full sm:w-auto"
       >
         Add Manually
@@ -189,7 +251,7 @@
       <div class="flex flex-col items-center space-y-2">
         <!-- Ingredient Circle with Placeholder Image -->
         <button
-          on:click={() => saveEditedIngredientDetails(index)}
+          on:click={() => openEditIngredient(item)}
           class="bg-gray-200 w-16 h-16 rounded-full flex items-center justify-center"
         >
           <img
@@ -201,10 +263,14 @@
         <!-- Ingredient Name -->
         <span class="text-gray-700 text-sm">{item.name}</span>
         <!-- Ingredient Weight -->
-        <span class="text-gray-500 text-xs">Weight: {item.weight}g</span>
+        <span class="text-gray-500 text-xs">Weight: {item.quantity}g</span>
         <!-- Ingredient Expiration Date -->
-        <span class="text-gray-500 text-xs">Expires: {item.expirationDate}</span
+        <span class="text-gray-500 text-xs"
+          >Expires: {item.expiration_date}</span
         >
+        {#if (new Date(item.expiration_date).getTime() - new Date().getTime()) / (1000 * 60 * 60) <= 24}
+          <span class="text-red-500 text-xs">Expiring today!</span>
+        {/if}
       </div>
     {/each}
   </div>
@@ -215,36 +281,53 @@
   <div
     class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
   >
-    <div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+    <div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full relative">
+      <!-- Warning Popup -->
+      {#if $warningMessage}
+        <div class="absolute inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+          <div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+            <h2 class="text-2xl font-bold text-red-600 mb-4">Warning</h2>
+            <p class="text-gray-700 mb-4">{$warningMessage}</p>
+            <div class="flex justify-end">
+              <button
+                on:click={() => warningMessage.set("")}
+                class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      {/if}
       <h2 class="text-2xl font-bold text-green-600 mb-4">
         {#if $editMode}
-          Edit Ingredient
+          Editing Ingredient: {$selectedIngredientOriginal}
         {:else}
           Add an Ingredient
         {/if}
       </h2>
-      <div class="mb-4">
-        <input
-          type="string"
-          bind:value={$selectedIngredient}
-          placeholder="Ingredient Name"
-          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
-        />
-      </div>
+      {#if !$editMode}
+        <div class="mb-4">
+          <input
+            type="string"
+            bind:value={$selectedIngredient}
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 text-gray-200 focus:ring-green-500 focus:outline-none"
+          />Name
+        </div>
+      {/if}
       <div class="mb-4">
         <input
           type="number"
           bind:value={$weight}
-          placeholder="Weight (grams)"
-          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
-        />
+          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 text-gray-300 focus:ring-green-500 focus:outline-none"
+        />Select the amount
       </div>
       <div class="mb-4">
         <input
           type="date"
           bind:value={$expirationDate}
-          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
-        />
+          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 text-gray-300 focus:ring-green-500 focus:outline-none"
+        />Select the expiration date
       </div>
       <div class="flex justify-end space-x-4">
         <button
@@ -257,9 +340,8 @@
           Cancel
         </button>
         <button
-          on:click={() => {
-            $editMode ? saveEditedIngredientDetails() : saveIngredientDetails();
-          }}
+          on:click={() =>
+            $editMode ? saveEditedIngredientDetails() : saveIngredientDetails()}
           class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
         >
           Save

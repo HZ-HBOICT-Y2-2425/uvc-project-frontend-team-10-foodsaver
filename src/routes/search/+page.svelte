@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { page } from "$app/stores";
-  import { goto } from "$app/navigation"; // 导入 'goto' 用于页面跳转
+  import { goto } from "$app/navigation";
 
   // Define the recipe type
   type Recipe = {
@@ -18,7 +18,7 @@
   let isVegetarian = false; // Checkbox for Vegetarian filter
   let isGlutenFree = false; // Checkbox for Gluten-Free filter
 
-  const API_KEY = "4b94021e0008460490fb26e12c8ec0f0"; // Replace with your actual API key
+  const API_KEY = "2294333ae4bd4ac684e27677b3c30c63"; // Replace with your actual API key
 
   // Fetch recipes based on the selected ingredients from query parameters
   onMount(async () => {
@@ -79,6 +79,11 @@
     goto(`/recipe/${recipeId}`); // 跳转到详情页面，并传递菜谱 ID
   }
 
+  // 跳转到收藏页面的函数
+  function goToFavorites() {
+    goto(`/favorite`); // 跳转到收藏页面
+  }
+
   // Apply filters to the fetched recipes
   const applyFilters = (): void => {
     filteredRecipes = recipes.filter((recipe) => {
@@ -127,14 +132,15 @@
         <img
           src={recipe.image}
           alt={recipe.title}
-          class="w-full h-32 object-cover rounded-md mb-2"
+          class="w-full h-32 object-cover rounded-md mb-2 cursor-pointer"
+          on:click={() => goToRecipeDetails(recipe.id)}
         />
         <p class="font-semibold text-lg">{recipe.title}</p>
         <button
-          class="mt-2 bg-white hover:bg-red-500 hover:text-white border border-red-500 rounded-full p-2"
-          on:click={() => goToRecipeDetails(recipe.id)}
+          class="mt-2 text-red-500 hover:text-red-700 transition-colors"
+          on:click={goToFavorites}
         >
-          <i class="fas fa-heart"></i>
+          <i class="fas fa-heart text-2xl"></i>
         </button>
       </div>
     {/each}

@@ -8,13 +8,16 @@
   let errorMessage = '';
   let successMessage = '';
   let isLoggedIn = false;
+  let showPassword = false;
 
   authStore.subscribe((state) => {
       isLoggedIn = state.isLoggedIn;
+      console.log("Auth Store State: ", state);
   });
 
   onMount(() => {
       if (isLoggedIn) {
+          console.log("User already logged in, redirecting to home...");
           goto('/');
       }
   });
@@ -44,6 +47,7 @@
       try {
           const API_BASE_URL = 'http://localhost:4000/api/users';
 
+          console.log("Sending login request to backend...");
           const response = await fetch(`${API_BASE_URL}/login`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -51,17 +55,18 @@
           });
 
           const data = await response.json();
+          console.log("Response from backend: ", data);
 
           if (data.success) {
-              localStorage.setItem('authToken', data.token);
+          localStorage.setItem('authToken', data.token);
+          login({ username: data.username, id: data.id }, data.token);
+          console.log("Auth Store updated with user:", { username: data.username, id: data.id });
 
-              login({ username: data.username });
-
-              successMessage = 'Login successful!';
-              if (successBox && successText) {
-                  successText.textContent = successMessage;
-                  successBox.classList.remove('hidden');
-              }
+          successMessage = 'Login successful!';
+          if (successBox && successText) {
+              successText.textContent = successMessage;
+              successBox.classList.remove('hidden');
+          }
 
               setTimeout(() => {
                   goto('/');
@@ -72,8 +77,10 @@
                   errorText.textContent = errorMessage;
                   errorBox.classList.remove('hidden');
               }
+              console.log("Error during login: ", data.message);
           }
       } catch (error) {
+          console.error("Error during login request: ", error);
           errorMessage = 'Something went wrong! Please try again later.';
           if (errorBox && errorText) {
               errorText.textContent = errorMessage;
@@ -105,23 +112,36 @@
   </div>
 
   <div class="space-y-6">
-    <div class="InputField">
-      <label for="username" class="block text-gray-700 text-base font-medium">Username</label>
-      <input
-        type="text"
-        id="username"
-        bind:value={username}
-        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300"
-      />
-    </div>
-    <div class="InputField">
-      <label for="password" class="block text-gray-700 text-base font-medium">Password</label>
-      <input
-        type="password"
-        id="password"
-        bind:value={password}
-        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300"
-      />
+    <div class="space-y-6">
+      <div class="InputField">
+        <label for="username" class="block text-gray-700 text-base font-medium">Username</label>
+        <input
+          type="text"
+          id="username"
+          bind:value={username}
+          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300"
+        />
+      </div>
+      <div class="InputField">
+        <label for="password" class="block text-gray-700 text-sm font-medium mb-2">Password</label>
+        <input
+          type={showPassword ? "text" : "password"}
+          id="password"
+          bind:value={password}
+          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300"
+        />
+        <div class="flex items-center mt-2">
+          <input
+            type="checkbox"
+            id="togglePassword"
+            bind:checked={showPassword}
+            class="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring focus:ring-blue-300"
+          />
+          <label for="togglePassword" class="text-sm text-gray-600 cursor-pointer">
+            Show Password
+          </label>
+        </div>
+      </div>
     </div>
   </div>
 

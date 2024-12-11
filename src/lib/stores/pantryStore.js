@@ -1,30 +1,97 @@
-import { writable } from 'svelte/store';
+import { writable } from "svelte/store";
 
-const defaultPantry = [
-  
-]; // Default pantry items with weight and expiration date
+export const pantry = writable([]);
 
-let storedPantry;
+const apiUrl = 'http://localhost:3016/pantry';  // Change to your backend URL
 
-if (typeof window !== 'undefined') {
+// Fetch all pantry items
+export async function fetchPantryItems() {
   try {
-    // Safely parse the pantry data from localStorage
-    const pantryData = localStorage.getItem('pantry');
-    storedPantry = pantryData ? JSON.parse(pantryData) : defaultPantry;
+    const response = await fetch(`${apiUrl}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}` // Assuming token is stored in localStorage
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch pantry items');
+    }
+
+    const data = await response.json();
+    pantry.set(data);
   } catch (error) {
-    console.error('Error parsing pantry from localStorage:', error);
-    storedPantry = defaultPantry; // Fallback to default pantry
+    console.error(error);
   }
-} else {
-  // Fallback for server-side rendering
-  storedPantry = defaultPantry;
 }
 
-export const pantry = writable(storedPantry);
+// Add a new pantry item
+export async function addPantryItem(newItem) {
+  try {
+    const response = await fetch(`${apiUrl}/add`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify(newItem)
+    });
 
-// Save to localStorage whenever the pantry changes
-if (typeof window !== 'undefined') {
-  pantry.subscribe((value) => {
-    localStorage.setItem('pantry', JSON.stringify(value));
-  });
+    if (!response.ok) {
+      throw new Error('Failed to add pantry item');
+    }
+
+    const data = await response.json();
+    pantry.update(items => [...items, data.item]); // Update the store with the new item
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Update an existing pantry item
+export async function updatePantryItem(index, updatedItem) {
+  try {
+    const response = await fetch(`${apiUrl}/update/${updatedItem.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify(updatedItem)
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update pantry item');
+    }
+
+    const data = await response.json();
+    pantry.update(items => {
+      items[index] = data.item;  // Update the item in the store
+      return [...items];
+    });
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Remove an item from pantry
+export async function removePantryItem(itemName) {
+  try {
+    const item = $pantry.find(item => item.name === itemName);
+
+    const response = await fetch(`${apiUrl}/delete/${item.id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete pantry item');
+    }
+
+    pantry.update(items => items.filter(item => item.name !== itemName));
+  } catch (error) {
+    console.error(error);
+  }
 }

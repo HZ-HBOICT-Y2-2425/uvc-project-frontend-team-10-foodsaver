@@ -13,7 +13,7 @@
 
   async function fetchPantryItems() {
     const response = await fetch(
-      `http://localhost:3016/pantry?user_id=${user_id}`,
+      `http://localhost:4010/pantry?user_id=${user_id}`,
     );
     const data = await response.json();
     if (response.ok) {

@@ -42,7 +42,7 @@
   // get all favorite recipes' IDs
   async function fetchPantryItems() {
     const response = await fetch(
-      `http://localhost:3016/pantry?user_id=${user_id}`,
+      `http://localhost:4010/pantry?user_id=${user_id}`,
     );
     const data = await response.json();
     if (response.ok) {
@@ -93,7 +93,7 @@
 
     try {
       const response = await fetch(
-        `http://localhost:3016/pantry/add?user_id=${user_id}`,
+        `http://localhost:4010/pantry/add?user_id=${user_id}`,
         {
           method: "POST",
           headers: {
@@ -138,7 +138,7 @@
 
     try {
       const response = await fetch(
-        `http://localhost:3016/pantry/update/${selectedIngredient}?user_id=${user_id}`,
+        `http://localhost:4010/pantry/update/${selectedIngredient}?user_id=${user_id}`,
         {
           method: "PUT",
           headers: {
@@ -172,7 +172,7 @@
   const removeIngredient = async (name: string): Promise<void> => {
     try {
       const response = await fetch(
-        `http://localhost:3016/pantry/delete/${name}?user_id=${user_id}`,
+        `http://localhost:4010/pantry/delete/${name}?user_id=${user_id}`,
         {
           method: "DELETE",
         },

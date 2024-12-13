@@ -311,7 +311,7 @@
           <input
             type="string"
             bind:value={$selectedIngredient}
-            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 text-gray-200 focus:ring-green-500 focus:outline-none"
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2  focus:ring-green-500 focus:outline-none"
           />Name
         </div>
       {/if}
@@ -319,14 +319,14 @@
         <input
           type="number"
           bind:value={$weight}
-          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 text-gray-300 focus:ring-green-500 focus:outline-none"
+          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2  focus:ring-green-500 focus:outline-none"
         />Select the amount
       </div>
       <div class="mb-4">
         <input
           type="date"
           bind:value={$expirationDate}
-          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 text-gray-300 focus:ring-green-500 focus:outline-none"
+          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2  focus:ring-green-500 focus:outline-none"
         />Select the expiration date
       </div>
       <div class="flex justify-end space-x-4">

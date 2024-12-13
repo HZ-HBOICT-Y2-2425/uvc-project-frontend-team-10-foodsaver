@@ -39,7 +39,7 @@
     unsubscribe();
   });
 
-  // get all favorite recipes' IDs
+  // get all favorite ingredients' IDs
   async function fetchPantryItems() {
     const response = await fetch(
       `http://localhost:4010/pantry?user_id=${user_id}`,

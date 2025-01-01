@@ -27,7 +27,7 @@
       }
   
       try {
-        const response = await fetch(`http://localhost:4052/shopping-lists?userId=${user_id}`);
+        const response = await fetch(`http://localhost:4053/shopping-lists?userId=${user_id}`);
         if (response.ok) {
           const lists = await response.json();
   
@@ -59,7 +59,7 @@
       }
   
       try {
-        const response = await fetch(`http://localhost:4052/proxy/mealdb?ingredient=${recipeId}`);
+        const response = await fetch(`http://localhost:4053/proxy/mealdb?ingredient=${recipeId}`);
         if (response.ok) {
           const data = await response.json();
           return data?.meals?.[0] || null;

@@ -86,7 +86,7 @@ async function saveShoppingList() {
   }
 
   try {
-    const shoppingListResponse = await fetch('http://localhost:4052/shopping-lists', {
+    const shoppingListResponse = await fetch('http://localhost:4053/shopping-lists', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -118,7 +118,7 @@ async function saveShoppingList() {
 
 async function fetchShoppingLists() {
   try {
-    const response = await fetch(`http://localhost:4052/shopping-lists?userId=${user_id}`);
+    const response = await fetch(`http://localhost:4053/shopping-lists?userId=${user_id}`);
     if (response.ok) {
       const shoppingLists = await response.json();
       console.log('Fetched shopping lists:', shoppingLists);

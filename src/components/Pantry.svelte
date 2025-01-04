@@ -123,6 +123,7 @@
       weight.set(0);
       expirationDate.set("");
       addManually.set(false);
+      removeManually.set(false); // Ensure removeManually is set to false
     } catch (error) {
       console.error("Error saving ingredient:", error);
     }

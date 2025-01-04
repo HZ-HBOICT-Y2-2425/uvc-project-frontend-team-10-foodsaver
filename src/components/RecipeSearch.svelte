@@ -31,10 +31,7 @@
     let currentRecipeIndex1 = 0;
     let currentRecipeIndex2 = 0;
 
-    authStore.subscribe((state) => {
-        console.log("Auth store state in home page: ", state);
-        username = state.user?.username || "";
-    });
+    $: username = $authStore.user?.username || 'Guest';
 
     // Trigger search function
     const searchRecipes = () => {

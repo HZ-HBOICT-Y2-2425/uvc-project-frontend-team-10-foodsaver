@@ -42,16 +42,20 @@
 
   // display ingredients in the pantry
   async function fetchPantryItems() {
-    const response = await fetch(
-      `http://localhost:4010/pantry?user_id=${user_id}`,
-    );
-    const data = await response.json();
-    if (response.ok) {
-      pantry = data;
-      pantryStore.set(pantry);
-      checkExpiredIngredients();
-    } else {
-      console.error("Error fetching pantry items:", data.error);
+    try {
+      const response = await fetch(
+        `http://localhost:4010/pantry?user_id=${user_id}`
+      );
+      const data = await response.json();
+      if (response.ok) {
+        pantry = data;
+        pantryStore.set(pantry);
+        checkExpiredIngredients();
+      } else {
+        console.error("Error fetching pantry items:", data.error);
+      }
+    } catch (error) {
+      console.error("Error fetching pantry items:", error);
     }
   }
 
@@ -123,7 +127,6 @@
       weight.set(0);
       expirationDate.set("");
       addManually.set(false);
-      removeManually.set(false); // Ensure removeManually is set to false
     } catch (error) {
       console.error("Error saving ingredient:", error);
     }

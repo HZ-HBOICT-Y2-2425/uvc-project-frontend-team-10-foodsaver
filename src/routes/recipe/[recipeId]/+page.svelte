@@ -28,7 +28,7 @@
   let selectedIngredientOriginal = writable<string>("");
   let selectedMeasurement = writable<string>("");
   let ingredient = writable<string>("");
-  let selectedIngredients: { [key: number]: { name: string, amount: number, measurement: string } } = {}; // Initialize selectedIngredients
+  let selectedIngredients: { [key: string]: { amount: number, measurement: string } } = {}; // Initialize selectedIngredients
   let amount = writable<number>(0);
 
   interface Countdown {
@@ -68,43 +68,52 @@
       console.error("Error fetching pantry items:", error);
     }
   }
-  const saveUsedAmount = async (): Promise<void> => {
+
+  const saveUsedAmount = (): void => {
     const selectedIngredientValue = $selectedIngredient; // Get the value of selectedIngredient
-    const updateItem = {
-      name: selectedIngredientValue,
-      quantity: pantry.find(item => item.name === selectedIngredientValue)?.quantity - $amountUsed,
+    selectedIngredients[selectedIngredientValue] = {
+      amount: $amountUsed,
       measurement: $measurementUnit,
-      user_id: user_id, // Automatically associate the logged-in user
     };
 
+    // Close the form
+    showIngredientModal.set(false);
+  };
+
+  const updateAllIngredients = async (): Promise<void> => {
     try {
-      const response = await fetch(
-         `http://localhost:4010/pantry/update/${encodeURIComponent(selectedIngredientValue)}?user_id=${user_id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
+      for (const [ingredientName, details] of Object.entries(selectedIngredients)) {
+        const updateItem = {
+          name: ingredientName,
+          quantity: pantry.find(item => item.name === ingredientName)?.quantity - details.amount,
+          measurement: details.measurement,
+          user_id: user_id, // Automatically associate the logged-in user
+        };
+
+        const response = await fetch(
+          `http://localhost:4010/pantry/update/${encodeURIComponent(ingredientName)}?user_id=${user_id}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(updateItem),
           },
-          body: JSON.stringify(updateItem),
-        },
-      );
+        );
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (response.ok) {
-        console.log("Ingredient updated successfully:", data);
-        fetchPantryItems(); // Reload pantry items
-      } else {
-        console.error("Error updating ingredient:", data.error);
+        if (response.ok) {
+          console.log("Ingredient updated successfully:", data);
+        } else {
+          console.error("Error updating ingredient:", data.error);
+        }
       }
 
-      // Reset fields and close the form
-      ingredient.set("");
-      amountUsed.set(0);
-      measurementUnit.set("grams");
-      showIngredientModal.set(false);
+      fetchPantryItems(); // Reload pantry items
+      selectedIngredients = {}; // Reset selected ingredients
     } catch (error) {
-      console.error("Error saving updated ingredient:", error);
+      console.error("Error updating ingredients:", error);
     }
   };
 
@@ -211,6 +220,26 @@
     return /(\d+)(?:\s*min|\s*sec|\s*hour)/i.test(step);
   }
 
+  function updateCountdownMinutes(index: number, minutes: string) {
+    const value = parseInt(minutes, 10);
+    if (!isNaN(value)) {
+      countdowns[index] = {
+        ...countdowns[index],
+        minutes: value,
+      };
+    }
+  }
+
+  function updateCountdownSeconds(index: number, seconds: string) {
+    const value = parseInt(seconds, 10);
+    if (!isNaN(value)) {
+      countdowns[index] = {
+        ...countdowns[index],
+        seconds: value,
+      };
+    }
+  }
+
   let ingredients = [];
   searchedIngredients.subscribe((items) => {
     ingredients = items;
@@ -234,6 +263,23 @@
           Ingredients in Your Pantry
         </h2>
 
+        <!-- Button to add amount used -->
+        <button
+          class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full mb-4"
+          on:click={() => showIngredientModal.set(true)}
+        >
+          Add Amount Used
+        </button>
+
+        <!-- Display selected ingredient details -->
+        {#each Object.entries(selectedIngredients) as [ingredientName, details]}
+          <div class="bg-white p-4 rounded-lg shadow-md mb-4">
+            <p class="text-lg font-semibold">Selected Ingredient:</p>
+            <p>Name: {ingredientName}</p>
+            <p>Amount Used: {details.amount} {details.measurement}</p>
+          </div>
+        {/each}
+
         <!-- CO2 Calculation Button -->
         <div
           class="recipe-card mt-3 p-4 bg-white border border-gray-300 rounded-lg text-center"
@@ -244,6 +290,7 @@
           </p>
           <button
             class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full"
+            on:click={updateAllIngredients}
           >
             Complete
           </button>
@@ -289,24 +336,6 @@
           <div class="step flex flex-col lg:flex-row items-start gap-4 mb-4">
             <div class="flex items-left">
               <h3 class="text-lg lg:text-xl">Step {index + 1}</h3>
-              <button
-                class="ml-2 flex items-center justify-left"
-                on:click={() => openIngredientModal(index)}
-              >
-                {#if selectedIngredients[index]}
-                  <img
-                    src="../../../minus-button.png"
-                    alt="Ingredient Added"
-                    class="w-4 h-4"
-                  />
-                {:else}
-                  <img
-                    src="../../../add-button.png"
-                    alt="Add Ingredient"
-                    class="w-4 h-4"
-                  />
-                {/if}
-              </button>
             </div>
             <div class="flex-2 text-left">
               <p class="mt-2">{step}.</p>
@@ -364,10 +393,7 @@
             <div class="flex-1">
               {#if selectedIngredients[index]}
                 <p class="mt-2 text-green-600">
-                  Used: {selectedIngredients[index].name}, {selectedIngredients[
-                    index
-                  ].amount}
-                  {selectedIngredients[index].measurement}
+                  Used: {selectedIngredients[index].name}, {selectedIngredients[ index ].amount} {selectedIngredients[index].measurement}
                 </p>
               {/if}
             </div>

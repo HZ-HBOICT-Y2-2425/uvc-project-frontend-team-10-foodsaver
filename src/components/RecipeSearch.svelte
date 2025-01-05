@@ -387,7 +387,7 @@
             </button>
 
             <!-- List of Ingredients -->
-            <div class="flex items-center space-x-4 h-60 overflow-x-auto">
+            <div class="flex items-center space-x-4 h-40 overflow-x-auto">
                 {#each $nearestExpiringIngredients.slice(currentIngredientIndex, currentIngredientIndex + visibleIngredientCount) as item}
                     {#if (new Date(item.expiration_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24) <= 3}
                         <div class="flex flex-col items-center space-y-2">
@@ -402,12 +402,6 @@
                             </div>
                             <span class="text-gray-700 text-sm"
                                 >{item.name}</span
-                            >
-                            <span class="text-gray-500 text-xs"
-                                >Weight: {item.quantity}g</span
-                            >
-                            <span class="text-gray-500 text-xs"
-                                >Expires: {item.expiration_date}</span
                             >
                             {#if (new Date(item.expiration_date).getTime() - new Date().getTime()) / (1000 * 60 * 60) <= 24}
                                 <span class="text-red-500 text-xs">Expiring today!</span>

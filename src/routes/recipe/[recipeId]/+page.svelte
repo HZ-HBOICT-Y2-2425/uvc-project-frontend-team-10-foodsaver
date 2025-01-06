@@ -23,7 +23,7 @@
     input: number; // User-entered time in seconds
   }
 
-  async function checkFavoriteStatus() {
+  export async function checkFavoriteStatus() {
     const response = await fetch(
         `http://localhost:3012/check-favorite/${recipe.id}?user_id=${user_id}`
     );

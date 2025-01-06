@@ -47,3 +47,51 @@ export function logout() {a
   localStorage.removeItem('authToken');
 }
 
+
+export async function checkFavoriteStatus() {
+  const response = await fetch(
+      `http://localhost:3012/check-favorite/${recipe.id}?user_id=${user_id}`
+  );
+
+  if (response.ok) {
+      const data = await response.json();
+      isFavorite = data.isFavorite;
+  } else {
+      console.error("Failed to check favorite status");
+  }
+}
+
+
+export async function toggleFavorite() {
+  if (isFavorite) {
+      const response = await fetch(`http://localhost:3012/favorites/${recipe.id}`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id }),
+      });
+
+      if (response.ok) {
+          alert("This recipe is removed from favorites");
+          isFavorite = false;
+      } else {
+          const error = await response.json();
+          alert(`Failed to remove from favorites: ${error.error}`);
+      }
+  } else {
+      const response = await fetch("http://localhost:3012/favorites", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ recipe_id: recipe.id, user_id }),
+      });
+
+      if (response.ok) {
+          alert("This recipe is added to favorites");
+          isFavorite = true;
+      } else {
+          const error = await response.json();
+          alert(`Failed to add to favorites: ${error.error}`);
+      }
+  }
+
+  checkFavoriteStatus();
+}

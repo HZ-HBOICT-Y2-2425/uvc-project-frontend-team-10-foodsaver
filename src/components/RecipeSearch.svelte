@@ -6,6 +6,12 @@
     import { pantryStore } from "../lib/stores/pantryStore";
     import { onDestroy } from "svelte";
 
+    //Create local maps of variables for each recipes category
+    let seasonalRecipes: any[] = []; // Seasonal recipes
+
+   // Object to track the favorites status of each recipe
+    let favoriteStates: { [key: string]: boolean } = {};
+
     // Create a local variable to store the pantry data
     let pantry = [];
 
@@ -23,8 +29,9 @@
     let searchActive = false;
     let selectedIngredients: string[] = [];
     let recipes: any[] = []; // Will store the fetched recipes
-    let seasonalRecipes: any[] = []; // Will store the fetched seasonal recipes
     let username = "";
+    let user_id = 1;
+
 
     const visibleRecipeCount = 6;
 
@@ -34,7 +41,195 @@
     authStore.subscribe((state) => {
         console.log("Auth store state in home page: ", state);
         username = state.user?.username || "";
+        user_id = state.user?.id || 1;
     });
+
+
+ // Verificar si una receta es favorita
+//  export async function checkFavoriteStatus(recipe_id: string) {
+//         const response = await fetch(
+//             `http://localhost:3012/check-favorite/${recipe_id}?user_id=${user_id}`
+//         );
+
+//         if (response.ok) {
+//             const data = await response.json();
+//             favoriteStates[recipe_id] = data.isFavorite;
+//         } else {
+//             console.error("Failed to check favorite status");
+//         }
+//     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ // Función para cargar recetas estacionales
+ async function loadSeasonalRecipes() {
+        try {
+            const month = new Date().getMonth() + 1;
+            let seasonalTag = "";
+
+            if (month >= 3 && month <= 5) {
+                seasonalTag = "asparagus"; // Primavera
+            } else if (month >= 6 && month <= 8) {
+                seasonalTag = "salad"; // Verano
+            } else if (month >= 9 && month <= 11) {
+                seasonalTag = "pumpkin"; // Otoño
+            } else {
+                seasonalTag = "beef"; // Invierno
+            }
+
+            const seasonalResponse = await fetch(
+                `https://www.themealdb.com/api/json/v1/1/filter.php?i=${seasonalTag}`
+            );
+
+            if (seasonalResponse.ok) {
+                const seasonalData = await seasonalResponse.json();
+                let seasonalRecipesSet = new Set();
+
+                for (const meal of seasonalData.meals) {
+                    try {
+                        const mealResponse = await fetch(
+                            `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal.idMeal}`
+                        );
+                        if (mealResponse.ok) {
+                            const mealData = await mealResponse.json();
+                            if (
+                                mealData.meals &&
+                                mealData.meals[0]?.strInstructions
+                            ) {
+                                seasonalRecipesSet.add(
+                                    JSON.stringify(mealData.meals[0])
+                                );
+                            }
+                        } else {
+                            console.error(
+                                "Error getting detailed seasonal recipe information:",
+                                meal.idMeal,
+                                mealResponse.statusText
+                            );
+                        }
+                    } catch (error) {
+                        console.error(
+                            "Error getting detailed seasonal recipe information:",
+                            meal.idMeal,
+                            error
+                        );
+                    }
+                }
+
+                seasonalRecipes = Array.from(seasonalRecipesSet).map(
+                    (recipeStr) => JSON.parse(recipeStr)
+                );
+            } else {
+                console.error(
+                    "Error getting seasonal recipes:",
+                    seasonalResponse.statusText
+                );
+            }
+        } catch (error) {
+            console.error("Error getting seasonal recipes:", error);
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+      // Función para verificar el estado de favorito de una receta
+      async function checkFavoriteStatus(recipe_id: string) {
+        try {
+            const response = await fetch(
+                `http://localhost:3012/check-favorite/${recipe_id}?user_id=${user_id}`
+            );
+
+            if (response.ok) {
+                const data = await response.json();
+                favoriteStates[recipe_id] = data.isFavorite;
+            } else {
+                console.error("Error al verificar el estado de favorito");
+            }
+        } catch (error) {
+            console.error("Error al verificar el estado de favorito:", error);
+        }
+    }
+
+
+
+
+ // Ejecutar al montar el componente
+ onMount(async () => {
+        await loadSeasonalRecipes();
+        for (const recipe of seasonalRecipes) {
+            await checkFavoriteStatus(recipe.idMeal);
+        }
+    });
+
+
+
+
+
+ // Alternar el estado de favorito para una receta específica
+ export async function toggleFavorite(recipe_id: string) {
+        if (favoriteStates[recipe_id]) {
+            const response = await fetch(
+                `http://localhost:3012/favorites/${recipe_id}`,
+                {
+                    method: "DELETE",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ user_id }),
+                }
+            );
+
+            if (response.ok) {
+                alert("This recipe is removed from favorites");
+                favoriteStates[recipe_id] = false;
+            } else {
+                const error = await response.json();
+                alert(`Failed to remove from favorites: ${error.error}`);
+            }
+        } else {
+            const response = await fetch("http://localhost:3012/favorites", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ recipe_id, user_id }),
+            });
+
+            if (response.ok) {
+                alert("This recipe is added to favorites");
+                favoriteStates[recipe_id] = true;
+            } else {
+                const error = await response.json();
+                alert(`Failed to add to favorites: ${error.error}`);
+            }
+        }
+
+        checkFavoriteStatus(recipe_id); // Actualizar el estado después de cambiarlo
+    }
+
+
+// Inicializar el estado de favoritos para cada receta al montarse el componente
+// onMount(async () => {
+//         for (const recipe of seasonalRecipes) {
+//             await checkFavoriteStatus(recipe.idMeal);
+//         }
+//     });
 
     // Trigger search function
     const searchRecipes = () => {
@@ -45,6 +240,12 @@
             goto(`/search?ingredients=${ingredientsParam}`);
         }
     };
+
+    //Go to favorites section
+    function goToFavorites() {
+    goto(`/favorite`); // 跳转到收藏页面
+  }
+
 
     // Fallback for broken image
     const handleImageError = (event: Event) => {
@@ -211,80 +412,80 @@
     }
 
     // Fetch seasonal recipes on component mount
-    onMount(async () => {
-        try {
-            // Determine the current season
-            const month = new Date().getMonth() + 1; // Get current month (0-based, so add 1)
-            let seasonalTag = "";
+    // onMount(async () => {
+    //     try {
+    //         // Determine the current season
+    //         const month = new Date().getMonth() + 1; // Get current month (0-based, so add 1)
+    //         let seasonalTag = "";
 
-            // Assign tags based on the current month
-            if (month >= 3 && month <= 5) {
-                seasonalTag = "asparagus"; // Spring
-            } else if (month >= 6 && month <= 8) {
-                seasonalTag = "salad"; // Summer
-            } else if (month >= 9 && month <= 11) {
-                seasonalTag = "pumpkin"; // Fall
-            } else {
-                seasonalTag = "beef"; // Winter
-            }
+    //         // Assign tags based on the current month
+    //         if (month >= 3 && month <= 5) {
+    //             seasonalTag = "asparagus"; // Spring
+    //         } else if (month >= 6 && month <= 8) {
+    //             seasonalTag = "salad"; // Summer
+    //         } else if (month >= 9 && month <= 11) {
+    //             seasonalTag = "pumpkin"; // Fall
+    //         } else {
+    //             seasonalTag = "beef"; // Winter
+    //         }
 
-            // Fetch recipes with the seasonal tag
-            const seasonalResponse = await fetch(
-                `https://www.themealdb.com/api/json/v1/1/filter.php?i=${seasonalTag}`,
-            );
-            if (seasonalResponse.ok) {
-                const seasonalData = await seasonalResponse.json();
-                let seasonalRecipesSet = new Set();
+    //         // Fetch recipes with the seasonal tag
+    //         const seasonalResponse = await fetch(
+    //             `https://www.themealdb.com/api/json/v1/1/filter.php?i=${seasonalTag}`,
+    //         );
+    //         if (seasonalResponse.ok) {
+    //             const seasonalData = await seasonalResponse.json();
+    //             let seasonalRecipesSet = new Set();
 
-                // Fetch detailed recipe info to check for instructions
-                for (const meal of seasonalData.meals) {
-                    try {
-                        const mealResponse = await fetch(
-                            `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal.idMeal}`,
-                        );
-                        if (mealResponse.ok) {
-                            const mealData = await mealResponse.json();
-                            if (
-                                mealData.meals &&
-                                mealData.meals[0]?.strInstructions
-                            ) {
-                                seasonalRecipesSet.add(
-                                    JSON.stringify(mealData.meals[0]),
-                                );
-                            }
-                        } else {
-                            console.error(
-                                "Failed to fetch detailed seasonal recipe info:",
-                                meal.idMeal,
-                                mealResponse.statusText,
-                            );
-                        }
-                    } catch (error) {
-                        console.error(
-                            "Error fetching detailed seasonal recipe info:",
-                            meal.idMeal,
-                            error,
-                        );
-                    }
-                }
+    //             // Fetch detailed recipe info to check for instructions
+    //             for (const meal of seasonalData.meals) {
+    //                 try {
+    //                     const mealResponse = await fetch(
+    //                         `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal.idMeal}`,
+    //                     );
+    //                     if (mealResponse.ok) {
+    //                         const mealData = await mealResponse.json();
+    //                         if (
+    //                             mealData.meals &&
+    //                             mealData.meals[0]?.strInstructions
+    //                         ) {
+    //                             seasonalRecipesSet.add(
+    //                                 JSON.stringify(mealData.meals[0]),
+    //                             );
+    //                         }
+    //                     } else {
+    //                         console.error(
+    //                             "Failed to fetch detailed seasonal recipe info:",
+    //                             meal.idMeal,
+    //                             mealResponse.statusText,
+    //                         );
+    //                     }
+    //                 } catch (error) {
+    //                     console.error(
+    //                         "Error fetching detailed seasonal recipe info:",
+    //                         meal.idMeal,
+    //                         error,
+    //                     );
+    //                 }
+    //             }
 
-                // Update seasonalRecipes with those that have instructions
-                seasonalRecipes = Array.from(seasonalRecipesSet).map(
-                    (recipeStr) => JSON.parse(recipeStr),
-                );
-            } else {
-                console.error(
-                    "Failed to fetch seasonal recipes:",
-                    seasonalResponse.statusText,
-                );
-            }
-        } catch (error) {
-            console.error("Error fetching seasonal recipes:", error);
-        }
-    });
+    //             // Update seasonalRecipes with those that have instructions
+    //             seasonalRecipes = Array.from(seasonalRecipesSet).map(
+    //                 (recipeStr) => JSON.parse(recipeStr),
+    //             );
+    //         } else {
+    //             console.error(
+    //                 "Failed to fetch seasonal recipes:",
+    //                 seasonalResponse.statusText,
+    //             );
+    //         }
+    //     } catch (error) {
+    //         console.error("Error fetching seasonal recipes:", error);
+    //     }
+    // });
 
     // jump to recipe details page
-    function goToRecipeDetails(recipeId: number) {
+    function goToRecipeDetails(recipeId: string) {
         goto(`/recipe/${recipeId}`);
     }
 </script>
@@ -550,6 +751,7 @@
                     <div
                         class="recipe-card border p-4 rounded-lg text-center shadow-md w-40"
                     >
+                    
                         <img
                             src={recipe.strMealThumb}
                             alt={recipe.strMeal}
@@ -560,6 +762,12 @@
                         <p class="font-semibold text-lg mb-2">
                             {recipe.strMeal}
                         </p>
+                        <img
+                        src={favoriteStates[recipe.idMeal] ? "/solid-heart.png" : "/blank-heart.png"}
+                        alt="Favorite"
+                        class="inline-block w-6 h-6 cursor-pointer ml-3"
+                        on:click={() => toggleFavorite(recipe.idMeal)}
+                    />
                     </div>
                 {/each}
             </div>

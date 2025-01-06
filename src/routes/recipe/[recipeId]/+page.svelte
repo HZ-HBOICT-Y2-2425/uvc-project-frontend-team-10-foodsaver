@@ -25,9 +25,7 @@
   let amountUsed = writable<number>(0);
   let measurementUnit = writable<string>("grams");
   let selectedIngredient = writable<string>("");
-  let selectedIngredientOriginal = writable<string>("");
   let selectedMeasurement = writable<string>("");
-  let ingredient = writable<string>("");
   let selectedIngredients: { [key: string]: { amount: number, measurement: string } } = {}; // Initialize selectedIngredients
   let amount = writable<number>(0);
 
@@ -83,30 +81,37 @@
   const updateAllIngredients = async (): Promise<void> => {
     try {
       for (const [ingredientName, details] of Object.entries(selectedIngredients)) {
-        const updateItem = {
-          name: ingredientName,
-          quantity: pantry.find(item => item.name === ingredientName)?.quantity - details.amount,
-          measurement: details.measurement,
-          user_id: user_id, // Automatically associate the logged-in user
-        };
+        const currentQuantity = pantry.find(item => item.name === ingredientName)?.quantity || 0;
+        const newQuantity = currentQuantity - details.amount;
 
-        const response = await fetch(
-          `http://localhost:4010/pantry/update/${encodeURIComponent(ingredientName)}?user_id=${user_id}`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(updateItem),
-          },
-        );
-
-        const data = await response.json();
-
-        if (response.ok) {
-          console.log("Ingredient updated successfully:", data);
+        if (newQuantity <= 0) {
+          await removeIngredient(ingredientName);
         } else {
-          console.error("Error updating ingredient:", data.error);
+          const updateItem = {
+            name: ingredientName,
+            quantity: newQuantity,
+            measurement: details.measurement,
+            user_id: user_id, // Automatically associate the logged-in user
+          };
+
+          const response = await fetch(
+            `http://localhost:4010/pantry/update/${encodeURIComponent(ingredientName)}?user_id=${user_id}`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(updateItem),
+            },
+          );
+
+          const data = await response.json();
+
+          if (response.ok) {
+            console.log("Ingredient updated successfully:", data);
+          } else {
+            console.error("Error updating ingredient:", data.error);
+          }
         }
       }
 
@@ -114,6 +119,33 @@
       selectedIngredients = {}; // Reset selected ingredients
     } catch (error) {
       console.error("Error updating ingredients:", error);
+    }
+  };
+
+  const removeIngredient = async (name): Promise<void> => {
+    try {
+      const response = await fetch(
+        `http://localhost:4010/pantry/delete/${name}?user_id=${user_id}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log("Ingredient removed successfully:", data);
+
+        // Remove the ingredient from the pantry array in the frontend
+        pantry = pantry.filter((item) => item.name !== name);
+        pantryStore.set(pantry); // Update the store with the new array
+
+        console.log("Updated pantry in frontend:", pantry);
+      } else {
+        console.error("Error removing ingredient:", data.error);
+      }
+    } catch (error) {
+      console.error("Error removing ingredient:", error);
     }
   };
 
@@ -244,12 +276,10 @@
   searchedIngredients.subscribe((items) => {
     ingredients = items;
   });
-
-  let message = "No ingredients from this recipe are in your pantry.";
 </script>
 
 {#if recipe}
-  <div class="container w-full mx-auto px-4">
+  <div class="w-full mx-auto px-4">
     <section class="flex flex-col lg:flex-row mt-5">
       <div
         class="basis-full lg:basis-2/6 bg-gray-100 rounded-lg p-4 lg:p-10 lg:mr-8 mb-4 lg:mb-0"
@@ -265,11 +295,17 @@
 
         <!-- Button to add amount used -->
         <button
-          class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full mb-4"
+          class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full mb-4 hidden lg:block"
           on:click={() => showIngredientModal.set(true)}
         >
           Add Amount Used
         </button>
+        <img
+          src="./../../add-button.png"
+          alt="Add Amount Used"
+          class="w-20 h-20 fixed bottom-5 left-1/2 transform -translate-x-1/2 lg:hidden z-50 cursor-pointer"
+          on:click={() => showIngredientModal.set(true)}
+        />
 
         <!-- Display selected ingredient details -->
         {#each Object.entries(selectedIngredients) as [ingredientName, details]}

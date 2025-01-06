@@ -180,7 +180,7 @@
   };
 
   // Remove ingredient from pantry store (Delete item from backend)
-  const removeIngredient = async (name: string): Promise<void> => {
+  const removeIngredient = async (name): Promise<void> => {
     try {
       const response = await fetch(
         `http://localhost:4010/pantry/delete/${name}?user_id=${user_id}`,
@@ -225,19 +225,6 @@
     editMode.set(true);
   };
 </script>
-
-<!-- Leafs picture -->
-<img
-  class="LeafBackgroundRemoved9 w-72 h-60 left-[-80.30px] top-[800px] absolute origin-top-left rotate-[0.0deg] rounded-xl -z-10"
-  src="../../../leaf-background2.png"
-  alt="Leaf Background"
-/>
-
-<img
-  class="LeafBackgroundRemoved9 w-72 h-60 right-[-90px] top-[250px] absolute origin-top-left rotate-[270deg] rounded-xl -z-10"
-  src="../../../leaf-background1.png"
-  alt="Leaf Background"
-/>
 
 <!-- Pantry Layout -->
 <div class="p-4 max-w-3xl mx-auto bg-white shadow-md rounded-lg">
@@ -307,11 +294,11 @@
   <div
     class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
   >
-    <div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full relative">
+    <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full relative">
       <!-- Warning Popup -->
       {#if $warningMessage}
         <div class="absolute inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+          <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
             <h2 class="text-2xl font-bold text-red-600 mb-4">Warning</h2>
             <p class="text-gray-700 mb-4">{$warningMessage}</p>
             <div class="flex justify-end">

@@ -2,6 +2,35 @@
 	import { authStore } from './../../../lib/stores/authStore.js';
   import { goto } from "$app/navigation";
 
+  let recipeCount = 0;
+
+  $: recipeCount = $authStore.recipeCount;
+
+  const handleClick = async () => {
+    const token = $authStore.token;
+    try {
+      const response = await fetch('http://localhost:4000/api/users/increment-recipe-count', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to increment recipe count.');
+      }
+
+      const data = await response.json();
+      authStore.update((state) => ({
+        ...state,
+        recipeCount: data.recipe_count,
+      }));
+    } catch (error) {
+      console.error('Error incrementing recipe count:', error);
+    }
+  };
+
   let user_id = 1;
   authStore.subscribe((state) => {
     console.log("Auth store state in home page: ", state);
@@ -160,10 +189,11 @@
             your CO2 reduction calculated into account.
           </p>
           <button
-            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-          >
-            Complete
-          </button>
+          class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+          on:click={handleClick}
+        >
+          Complete
+        </button>
         </div>
       </div>
       <div class="basis-4/6 bg-gray-100 rounded-lg p-10 lg:mr-8">

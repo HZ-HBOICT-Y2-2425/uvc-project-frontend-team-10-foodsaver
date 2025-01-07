@@ -47,13 +47,12 @@
   </div>
   <div class="nav-links hidden md:flex space-x-6">
     <a href="/" class="text-gray-800 hover:text-green-500 text-lg">Home</a>
-    <a href="/about" class="text-gray-800 hover:text-green-500 text-lg">About Us</a>
     <a href="/tips" class="text-gray-800 hover:text-green-500 text-lg">Tips & Tricks</a>
     <a href="/pantry" class="text-gray-800 hover:text-green-500 text-lg">My Pantry</a>
     <a href="/profile" class="text-gray-800 hover:text-green-500 text-lg">Profile</a>
     <button
       on:click="{logout}"
-      class="text-gray-800 hover:text-red-500 text-lg border border-gray-300 rounded px-3 py-1">
+      class="text-gray-800 hover:text-red-500 text-lg border border-gray-300 rounded px-3 py-0">
       Logout
     </button>
   </div>
@@ -71,7 +70,6 @@
 {#if isMenuOpen && !isLoginOrRegister}
 <div id="mobile-menu" class="md:hidden w-full bg-white shadow-md p-4">
   <a href="/" class="block text-gray-800 hover:text-green-500 text-lg mb-2">Home</a>
-  <a href="/about" class="block text-gray-800 hover:text-green-500 text-lg mb-2">About Us</a>
   <a href="/tips" class="block text-gray-800 hover:text-green-500 text-lg mb-2">Tips & Tricks</a>
   <a href="/pantry" class="block text-gray-800 hover:text-green-500 text-lg mb-2">My Pantry</a>
   <a href="/profile" class="block text-gray-800 hover:text-green-500 text-lg mb-2">Profile</a>

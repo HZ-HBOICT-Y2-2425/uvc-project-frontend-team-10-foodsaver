@@ -87,6 +87,7 @@
       if (response.ok) {
         pantry = data;
         pantryStore.set(pantry);
+        categories = data.categories;
       } else {
         console.error("Error fetching pantry items:", data.error);
       }

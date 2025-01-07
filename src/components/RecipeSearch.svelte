@@ -5,7 +5,9 @@
   import { pantryStore } from "../lib/stores/pantryStore";
   import { searchedIngredients } from '../lib/stores/ingredientStore';
   import { derived } from 'svelte/store';
+
   import { writable } from "svelte/store";
+
 
   let pantry = [];
   const unsubscribe = pantryStore.subscribe((data) => {
@@ -30,16 +32,20 @@
   let selectedIngredient = writable<string>("");
   let selectedMeasurement = writable<string>("grams");
 
+
   const visibleRecipeCount = 6;
   let currentRecipeIndex1 = 0;
   let currentRecipeIndex2 = 0;
+
   let user_id = 1;
 
   authStore.subscribe((state) => {
     user_id=state.user?.id || 1;
+
     console.log("Auth store state in home page: ", state);
     username = state.user?.username || "";
   });
+
 
   // Save new ingredient details (Add item to backend)
   const saveIngredientDetails = async (): Promise<void> => {
@@ -93,6 +99,7 @@
     expirationDate.set("");
     addManually.set(true);
   };
+
 
   const searchRecipes = () => {
     if (!selectedIngredients.length) {
@@ -525,7 +532,9 @@ class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center 
             <div class="flex items-center space-x-4 h-40 overflow-x-auto">
                 {#each $nearestExpiringIngredients.slice(currentIngredientIndex, currentIngredientIndex + visibleIngredientCount) as item}
                     {#if (new Date(item.expiration_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24) <= 3}
-                        <div class="flex flex-col items-center space-y-2">
+                        <div
+                            class="flex flex-col items-center space-y-2 min-h-[120px]"
+                        >
                             <div
                                 class="bg-gray-200 w-20 h-20 rounded-full flex items-center justify-center"
                             >
@@ -535,16 +544,28 @@ class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center 
                                     class="w-12 h-12 object-cover"
                                 />
                             </div>
+
+                            <span class="text-gray-700 text-sm">{item.name}</span>
+                            <span class="text-gray-500 text-xs">Weight: {item.quantity}g</span>
+                            <span class="text-gray-500 text-xs">Expires: {item.expiration_date}</span>
+                            <span
+                                class="text-red-500 text-xs invisible"
+                            >
+                                Expiring today!
+                            </span>
+
                             <span class="text-gray-700 text-sm"
                                 >{item.name}</span
                             >
+
                             {#if (new Date(item.expiration_date).getTime() - new Date().getTime()) / (1000 * 60 * 60) <= 24}
-                                <span class="text-red-500 text-xs">Expiring today!</span>
+                                <span class="text-red-500 text-xs absolute visible">Expiring today!</span>
                             {/if}
                         </div>
                     {/if}
                 {/each}
             </div>
+            
 
             <!-- Right Arrow Button -->
             <button

@@ -49,7 +49,6 @@
     "cups",
     "pounds",
     "ounces",
-    "liters",
   ];
 
   interface Countdown {

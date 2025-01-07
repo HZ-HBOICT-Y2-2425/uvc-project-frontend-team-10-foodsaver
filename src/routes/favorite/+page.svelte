@@ -2,6 +2,7 @@
     import { authStore } from './../../lib/stores/authStore.js';
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
+    import { API_KEY } from '../../lib/index.js';
 
     let user_id = 1;
     authStore.subscribe((state) => {
@@ -30,12 +31,11 @@
 
     // fetch recipe details
     async function fetchRecipes() {
-        const apiKey = "2294333ae4bd4ac684e27677b3c30c63";
         console.log("Fetching recipes with IDs:", favoriteRecipeIds);
 
         const requests = favoriteRecipeIds.map((id) =>
             fetch(
-                `https://api.spoonacular.com/recipes/${id}/information?apiKey=${apiKey}`,
+                `https://api.spoonacular.com/recipes/${id}/information?apiKey=${API_KEY}`,
             ),
         );
 

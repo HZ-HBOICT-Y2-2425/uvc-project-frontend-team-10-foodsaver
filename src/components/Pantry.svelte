@@ -16,6 +16,7 @@
   let editIndex = writable<number | null>(null);
   let removeManually = writable<boolean>(false);
   let warningMessage = writable<string>("");
+  let selectedMeasurement = writable<string>("grams");
 
   // Default user ID to 1, will be updated from the auth store
   let user_id = 1;
@@ -39,18 +40,22 @@
     unsubscribe();
   });
 
-  // get all favorite ingredients' IDs
+  // display ingredients in the pantry
   async function fetchPantryItems() {
-    const response = await fetch(
-      `http://localhost:4010/pantry?user_id=${user_id}`,
-    );
-    const data = await response.json();
-    if (response.ok) {
-      pantry = data;
-      pantryStore.set(pantry);
-      checkExpiredIngredients();
-    } else {
-      console.error("Error fetching pantry items:", data.error);
+    try {
+      const response = await fetch(
+        `http://localhost:4010/pantry?user_id=${user_id}`
+      );
+      const data = await response.json();
+      if (response.ok) {
+        pantry = data;
+        pantryStore.set(pantry);
+        checkExpiredIngredients();
+      } else {
+        console.error("Error fetching pantry items:", data.error);
+      }
+    } catch (error) {
+      console.error("Error fetching pantry items:", error);
     }
   }
 
@@ -75,6 +80,7 @@
     const newItem = {
       name: $selectedIngredient,
       quantity: $weight,
+      measurement: $selectedMeasurement,
       expiration_date: $expirationDate,
       user_id: user_id, // Automatically associate the logged-in user
     };
@@ -86,7 +92,11 @@
     }
 
     // Check if the ingredient already exists in the pantry
-    if (pantry.some(item => item.name.toLowerCase() === newItem.name.toLowerCase())) {
+    if (
+      pantry.some(
+        (item) => item.name.toLowerCase() === newItem.name.toLowerCase(),
+      )
+    ) {
       alert("This ingredient already exists in your pantry.");
       return;
     }
@@ -126,6 +136,7 @@
     const selectedIngredient = $selectedIngredientOriginal;
     const updateItem = {
       quantity: $weight,
+      measurement: $selectedMeasurement,
       expiration_date: $expirationDate,
       user_id: user_id, // Automatically associate the logged-in user
     };
@@ -182,7 +193,12 @@
 
       if (response.ok) {
         console.log("Ingredient removed successfully:", data);
-        fetchPantryItems(); // Reload pantry items
+
+        // Remove the ingredient from the pantry array in the frontend
+        pantry = pantry.filter((item) => item.name !== name);
+        pantryStore.set(pantry); // Update the store with the new array
+
+        console.log("Updated pantry in frontend:", pantry);
       } else {
         console.error("Error removing ingredient:", data.error);
       }
@@ -205,6 +221,7 @@
     selectedIngredientOriginal.set(item.name);
     weight.set(item.quantity);
     expirationDate.set(item.expiration_date);
+    selectedMeasurement.set(item.measurement);
     editMode.set(true);
   };
 </script>
@@ -262,8 +279,17 @@
         </button>
         <!-- Ingredient Name -->
         <span class="text-gray-700 text-sm">{item.name}</span>
-        <!-- Ingredient Weight -->
-        <span class="text-gray-500 text-xs">Weight: {item.quantity}g</span>
+        <!-- Ingredient Weight and Measurement -->
+        <span class="text-gray-500 text-xs">
+          {item.quantity}
+          {#if item.measurement === "grams"}
+            g
+          {:else if item.measurement === "milliliters"}
+            ml
+          {:else if item.measurement === "pieces"}
+            pcs
+          {/if}
+        </span>
         <!-- Ingredient Expiration Date -->
         <span class="text-gray-500 text-xs"
           >Expires: {item.expiration_date}</span
@@ -321,6 +347,16 @@
           bind:value={$weight}
           class="w-full p-2 border border-gray-300 rounded-md focus:ring-2  focus:ring-green-500 focus:outline-none"
         />Select the amount
+      </div>
+      <div class="mb-4">
+        <select
+          bind:value={$selectedMeasurement}
+          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+        >
+          <option value="grams">Grams</option>
+          <option value="milliliters">Milliliters</option>
+          <option value="pieces">Pieces</option>
+        </select>Measurement
       </div>
       <div class="mb-4">
         <input

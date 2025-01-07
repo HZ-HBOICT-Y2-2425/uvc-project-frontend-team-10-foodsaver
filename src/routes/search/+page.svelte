@@ -73,14 +73,12 @@
     }
   });
 
-  // 跳转到菜谱详情页面的函数
   function goToRecipeDetails(recipeId: number) {
-    goto(`/recipe/${recipeId}`); // 跳转到详情页面，并传递菜谱 ID
+    goto(`/recipe/${recipeId}`);
   }
 
-  // 跳转到收藏页面的函数
   function goToFavorites() {
-    goto(`/favorite`); // 跳转到收藏页面
+    goto(`/favorite`);
   }
 
   // Apply filters to the fetched recipes

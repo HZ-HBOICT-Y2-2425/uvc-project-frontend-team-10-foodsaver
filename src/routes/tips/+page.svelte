@@ -3,7 +3,7 @@
 </script>
 
 <div>
-    <div class="header">Tips & Tricks</div>
+    <div class="header z-50">Tips & Tricks</div>
     <div class="container">
         <a href="makeUseOfIngredients" class="card-link">
             <div class="card">

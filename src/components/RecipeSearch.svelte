@@ -35,11 +35,9 @@
     let currentRecipeIndex1 = 0;
     let currentRecipeIndex2 = 0;
 
-    authStore.subscribe((state) => {
-        console.log("Auth store state in home page: ", state);
-        username = state.user?.username || "";
-        user_id = state.user?.id || 1;
-    });
+
+    $: username = $authStore.user?.username || 'Guest';
+
 
     const searchRecipes = async () => {
         if (!selectedIngredients.length) {

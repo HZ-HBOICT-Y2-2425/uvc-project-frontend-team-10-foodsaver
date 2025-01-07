@@ -298,15 +298,6 @@
     <div
         class="search-bar-container flex items-center justify-center w-full relative mb-8"
     >
-        <!-- Favourites Button -->
-        <div class="ml-4 mr-4">
-            <button
-                class="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring focus:ring-green-300"
-                on:click={() => goto("/favorite")}
-            >
-                Favourites
-            </button>
-        </div>
 
         <div class="relative flex-grow max-w-2xl">
             <div class="relative">

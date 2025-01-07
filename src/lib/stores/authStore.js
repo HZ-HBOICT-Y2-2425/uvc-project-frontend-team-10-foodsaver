@@ -5,29 +5,33 @@ export const authStore = writable(
     isLoggedIn: false,
     user: null,
     token: null,
+    recipeCount: 0, // Add this for tracking the recipe count
   },
   (set) => {
     const savedLoginState = localStorage.getItem('isLoggedIn') === 'true';
     const savedUser = JSON.parse(localStorage.getItem('user'));
     const savedToken = localStorage.getItem('authToken');
-
-    console.log("Initial auth store state: ", { savedLoginState, savedUser, savedToken });
+    const savedRecipeCount = parseInt(localStorage.getItem('recipeCount')) || 0;
 
     if (savedLoginState && savedToken) {
-      set({ isLoggedIn: true, user: savedUser, token: savedToken });
+      set({
+        isLoggedIn: true,
+        user: savedUser,
+        token: savedToken,
+        recipeCount: savedRecipeCount, // Initialize it
+      });
     }
 
     return authStore.subscribe((state) => {
-      console.log("Auth store updated: ", state);
       localStorage.setItem('isLoggedIn', state.isLoggedIn);
       localStorage.setItem('user', JSON.stringify(state.user));
       localStorage.setItem('authToken', state.token || '');
+      localStorage.setItem('recipeCount', state.recipeCount); // Save it
     });
   }
 );
 
 export function login(user, token) {
-  console.log("Logging in user: ", user);
   authStore.set({
     isLoggedIn: true,
     user: user,
@@ -35,8 +39,7 @@ export function login(user, token) {
   });
 }
 
-export function logout() {a
-  console.log("Logging out...");
+export function logout() {
   authStore.set({
     isLoggedIn: false,
     user: null,
@@ -45,5 +48,5 @@ export function logout() {a
   localStorage.removeItem('isLoggedIn');
   localStorage.removeItem('user');
   localStorage.removeItem('authToken');
+  localStorage.removeItem('recipeCount'); // Clear this as well
 }
-

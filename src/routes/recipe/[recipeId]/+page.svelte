@@ -345,11 +345,6 @@ async function saveShoppingList() {
       console.error("Error updating savings:", error);
 }
 
-
-
-
-
-
 async function fetchShoppingLists() {
   try {
     const response = await fetch(`http://localhost:4053/shopping-lists?userId=${user_id}`);
@@ -369,6 +364,37 @@ async function fetchShoppingLists() {
 // Example call for pantry items (replace with actual function logic)
 fetchPantryItems();
 
+  let recipeCount = 0;
+
+  $: recipeCount = $authStore.recipeCount;
+
+  const handleClick = async () => {
+    const token = $authStore.token;
+    try {
+      const response = await fetch('http://localhost:4000/api/users/increment-recipe-count', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to increment recipe count.');
+      }
+
+      const data = await response.json();
+      authStore.update((state) => ({
+        ...state,
+        recipeCount: data.recipe_count,
+      }));
+    } catch (error) {
+      console.error('Error incrementing recipe count:', error);
+    }
+  };
+
+  let user_id = 1;
+  
   authStore.subscribe((state) => {
     console.log("Auth store state in home page: ", state);
     user_id = state.user?.id || 1;
@@ -609,7 +635,22 @@ fetchPantryItems();
     <section class="flex flex-col lg:flex-row mt-5">
       <div class="basis-2/6 bg-gray-100 rounded-lg p-10 lg:mr-8">
         <img class="rounded-lg mb-5" src={recipe.image} alt={recipe.title} />
-
+        <div
+          class="recipe-card mt-3 p-4 bg-white border border-gray-300 rounded-lg text-center"
+        >
+          <p class="text-lg font-semibold mb-4">
+            If you finished this recipe, you can click the button below to get
+            your CO2 reduction calculated into account.
+          </p>
+          <button
+          class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+          on:click={handleClick}
+        >
+          Complete
+        </button>
+        </div>
+      </div>
+      <div class="basis-4/6 bg-gray-100 rounded-lg p-10 lg:mr-8">
         <h1 class="text-4xl mt-3 mb-3">
           {recipe.title}
           <img

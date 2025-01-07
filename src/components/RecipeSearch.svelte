@@ -44,8 +44,9 @@
   // Save new ingredient details (Add item to backend)
   const saveIngredientDetails = async (): Promise<void> => {
     const newItem = {
-      name: $ingredient,
+      name: $selectedIngredient,
       quantity: $weight,
+      measurement: $selectedMeasurement,
       expiration_date: $expirationDate,
       user_id: user_id, // Automatically associate the logged-in user
     };
@@ -53,6 +54,16 @@
     // Check if the expiration date is in the past
     if (new Date(newItem.expiration_date).getTime() < new Date().getTime()) {
       warningMessage.set("Please input a valid expiration date.");
+      return;
+    }
+
+    // Check if the ingredient already exists in the pantry
+    if (
+      pantry.some(
+        (item) => item.name.toLowerCase() === newItem.name.toLowerCase(),
+      )
+    ) {
+      alert("This ingredient already exists in your pantry.");
       return;
     }
 
@@ -65,14 +76,14 @@
             "Content-Type": "application/json",
           },
           body: JSON.stringify(newItem),
-        }
+        },
       );
 
       const data = await response.json();
 
       if (response.ok) {
         console.log("Ingredient added successfully:", data);
-        pantryStore.update((currentPantry) => [...currentPantry, newItem]);
+        fetchPantryItems(); // Reload pantry items
       } else {
         console.error("Error adding ingredient:", data.error);
       }
@@ -92,6 +103,64 @@
     weight.set(0);
     expirationDate.set("");
     addManually.set(true);
+  };
+
+    // display ingredients in the pantry
+    async function fetchPantryItems() {
+    try {
+      const response = await fetch(
+        `http://localhost:4010/pantry?user_id=${user_id}`
+      );
+      const data = await response.json();
+      if (response.ok) {
+        pantry = data;
+        pantryStore.set(pantry);
+        checkExpiredIngredients();
+      } else {
+        console.error("Error fetching pantry items:", data.error);
+      }
+    } catch (error) {
+      console.error("Error fetching pantry items:", error);
+    }
+  }
+
+    // Check for expired ingredients and remove them
+    async function checkExpiredIngredients() {
+    const now = new Date().getTime();
+    for (const item of pantry) {
+      if (new Date(item.expiration_date).getTime() < now) {
+        await removeIngredient(item.name);
+        warningMessage.set(`The ingredient "${item.name}" went bad. :(`);
+      }
+    }
+  }
+
+    // Remove ingredient from pantry store (Delete item from backend)
+    const removeIngredient = async (name: string): Promise<void> => {
+    try {
+      const response = await fetch(
+        `http://localhost:4010/pantry/delete/${name}?user_id=${user_id}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log("Ingredient removed successfully:", data);
+
+        // Remove the ingredient from the pantry array in the frontend
+        pantry = pantry.filter((item) => item.name !== name);
+        pantryStore.set(pantry); // Update the store with the new array
+
+        console.log("Updated pantry in frontend:", pantry);
+      } else {
+        console.error("Error removing ingredient:", data.error);
+      }
+    } catch (error) {
+      console.error("Error removing ingredient:", error);
+    }
   };
 
   const searchRecipes = () => {
@@ -416,7 +485,6 @@ class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center 
         class="search-bar-container flex items-center justify-center w-full relative mb-8"
     >
 
-
     <div class="ml-4 mr-4">
         <button
             class="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring focus:ring-green-300"
@@ -434,7 +502,6 @@ class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center 
                 Favourites
             </button>
         </div>
-
 
         <div class="relative flex-grow max-w-2xl">
             <div class="relative">

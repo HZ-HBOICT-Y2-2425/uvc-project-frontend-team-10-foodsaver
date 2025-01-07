@@ -1,6 +1,135 @@
 <script lang="ts">
+
 	import { authStore } from './../../../lib/stores/authStore.js';
-  import { goto } from "$app/navigation";
+import { goto } from "$app/navigation";
+
+let pantry = [];
+let missingIngredients = [];
+let showShoppingList = false;
+let user_id = 1;
+
+authStore.subscribe((state) => {
+  console.log("Auth store state in home page: ", state);
+  user_id = state.user?.id || 1;
+  console.log("user id is: ", user_id);
+});
+
+async function fetchPantryItems() {
+  try {
+    const response = await fetch(`http://localhost:4010/pantry?user_id=${user_id}`);
+    if (response.ok) {
+      pantry = await response.json();
+      console.log("Pantry items fetched:", pantry);
+    } else {
+      console.error("Failed to fetch pantry items");
+    }
+  } catch (error) {
+    console.error("Error fetching pantry items:", error);
+  }
+}
+
+function toggleShoppingList() {
+  if (!showShoppingList) {
+    findMissingIngredients();
+  }
+  showShoppingList = !showShoppingList;
+}
+
+function closeShoppingList() {
+  showShoppingList = false;
+}
+
+function findMissingIngredients() {
+  if (!recipe?.extendedIngredients || !Array.isArray(pantry)) return;
+
+  missingIngredients = [];
+  const recipeIngredients = recipe.extendedIngredients.map((ingredient) => ({
+    name: ingredient.name || ingredient.original,
+    requiredQuantity: ingredient.amount || 0,
+  }));
+
+  for (const recipeIngredient of recipeIngredients) {
+    const pantryItem = pantry.find(
+      (item) => item.name.toLowerCase() === recipeIngredient.name.toLowerCase()
+    );
+
+    if (!pantryItem || pantryItem.quantity < recipeIngredient.requiredQuantity) {
+      const missingQuantity =
+        recipeIngredient.requiredQuantity - (pantryItem?.quantity || 0);
+      missingIngredients.push({
+        name: recipeIngredient.name,
+        requiredQuantity: missingQuantity,
+      });
+    }
+  }
+}
+
+async function saveShoppingList() {
+  console.log("Full Recipe Data:", recipe);
+
+  if (!recipe || !recipe.title || !recipe.image) {
+    console.error("Invalid recipe data:", recipe);
+    alert("Recipe data is missing or incomplete.");
+    return;
+  }
+
+  console.log("Saving shopping list with data:", {
+    userId: user_id,
+    shoppingListName: recipe.title,  // Recipe name as shopping list name
+    ingredients: missingIngredients, // Missing ingredients
+    recipeTitle: recipe.title,       // Recipe title
+    recipeImage: recipe.image,       // Recipe image URL
+  });
+
+  if (missingIngredients.length === 0) {
+    alert("No missing ingredients to save!");
+    return;
+  }
+
+  try {
+    const shoppingListResponse = await fetch('http://localhost:4053/shopping-lists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: user_id,
+        shoppingListName: recipe.title,
+        ingredients: missingIngredients,
+        recipeTitle: recipe.title,
+        recipeImage: recipe.image,
+      }),
+    });
+
+    if (shoppingListResponse.ok) {
+      alert("Shopping list saved successfully!");
+    } else {
+      const error = await shoppingListResponse.json();
+      console.error("Failed to save shopping list:", error);
+      alert("Failed to save shopping list.");
+    }
+  } catch (error) {
+    console.error("Error saving shopping list:", error);
+    alert("Error saving shopping list.");
+  }
+}
+
+async function fetchShoppingLists() {
+  try {
+    const response = await fetch(`http://localhost:4053/shopping-lists?userId=${user_id}`);
+    if (response.ok) {
+      const shoppingLists = await response.json();
+      console.log('Fetched shopping lists:', shoppingLists);
+      savedShoppingLists = shoppingLists;
+    } else {
+      console.error('Failed to fetch shopping lists. Status:', response.status);
+    }
+  } catch (error) {
+    console.error('Error fetching shopping lists:', error.message);
+  }
+}
+
+
+// Example call for pantry items (replace with actual function logic)
+fetchPantryItems();
 
   let recipeCount = 0;
 
@@ -32,6 +161,7 @@
   };
 
   let user_id = 1;
+  
   authStore.subscribe((state) => {
     console.log("Auth store state in home page: ", state);
     user_id = state.user?.id || 1;
@@ -54,53 +184,55 @@
 
   async function checkFavoriteStatus() {
     const response = await fetch(
-        `http://localhost:3012/check-favorite/${recipe.id}?user_id=${user_id}`
+      `http://localhost:3012/check-favorite/${recipe.id}?user_id=${user_id}`,
     );
 
     if (response.ok) {
-        const data = await response.json();
-        isFavorite = data.isFavorite;
+      const data = await response.json();
+      isFavorite = data.isFavorite;
     } else {
-        console.error("Failed to check favorite status");
+      console.error("Failed to check favorite status");
     }
-}
+  }
 
   checkFavoriteStatus();
 
   export async function toggleFavorite() {
     if (isFavorite) {
-        const response = await fetch(`http://localhost:3012/favorites/${recipe.id}`, {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ user_id }),
-        });
+      const response = await fetch(
+        `http://localhost:3012/favorites/${recipe.id}`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id }),
+        },
+      );
 
-        if (response.ok) {
-            alert("This recipe is removed from favorites");
-            isFavorite = false;
-        } else {
-            const error = await response.json();
-            alert(`Failed to remove from favorites: ${error.error}`);
-        }
+      if (response.ok) {
+        alert("This recipe is removed from favorites");
+        isFavorite = false;
+      } else {
+        const error = await response.json();
+        alert(`Failed to remove from favorites: ${error.error}`);
+      }
     } else {
-        const response = await fetch("http://localhost:3012/favorites", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ recipe_id: recipe.id, user_id }),
-        });
+      const response = await fetch("http://localhost:3012/favorites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recipe_id: recipe.id, user_id }),
+      });
 
-        if (response.ok) {
-            alert("This recipe is added to favorites");
-            isFavorite = true;
-        } else {
-            const error = await response.json();
-            alert(`Failed to add to favorites: ${error.error}`);
-        }
+      if (response.ok) {
+        alert("This recipe is added to favorites");
+        isFavorite = true;
+      } else {
+        const error = await response.json();
+        alert(`Failed to add to favorites: ${error.error}`);
+      }
     }
 
     checkFavoriteStatus();
-}
-
+  }
 
   function getSteps(instructions: string) {
     const parser = new DOMParser();
@@ -180,7 +312,6 @@
     <section class="flex flex-col lg:flex-row mt-5">
       <div class="basis-2/6 bg-gray-100 rounded-lg p-10 lg:mr-8">
         <img class="rounded-lg mb-5" src={recipe.image} alt={recipe.title} />
-
         <div
           class="recipe-card mt-3 p-4 bg-white border border-gray-300 rounded-lg text-center"
         >
@@ -217,14 +348,36 @@
         </div>
 
         <h2 class="text-4xl mt-3 mb-3">Ingredients</h2>
-        <div>
-          <ul>
-            {#each recipe.extendedIngredients as ingredient}
-              <li>{ingredient.original}</li>
-            {/each}
-          </ul>
-        </div>
 
+<div>
+  <ul>
+    {#each recipe.extendedIngredients as ingredient}
+      <li>{ingredient.original}</li>
+    {/each}
+  </ul>
+  <button
+    class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 mt-4"
+    on:click={toggleShoppingList}
+  >
+    Show Shopping List
+  </button>
+</div>
+
+        <div
+          class="recipe-card mt-3 p-4 bg-white border border-gray-300 rounded-lg text-center"
+        >
+          <p class="text-lg font-semibold mb-4">
+            If you finished this recipe, you can click the button below to get
+            your CO2 reduction calculated into account.
+          </p>
+          <button
+            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+          >
+            Complete
+          </button>
+        </div>
+      </div>
+      <div class="basis-4/6 bg-gray-100 rounded-lg p-10 lg:mr-8">
         <h2 class="text-4xl mt-3 mb-3">Instructions</h2>
         {#each getSteps(recipe.instructions) as step, index (step)}
           <div class="step">
@@ -238,7 +391,8 @@
                   placeholder="Min"
                   min="0"
                   value={countdowns[index]?.minutes || ""}
-                  on:input={(e) => updateCountdownMinutes(index, e.target.value)}
+                  on:input={(e) =>
+                    updateCountdownMinutes(index, e.target.value)}
                   class="border border-gray-300 rounded px-2 w-20"
                 />
                 <span>:</span>
@@ -248,15 +402,16 @@
                   min="0"
                   max="59"
                   value={countdowns[index]?.seconds || ""}
-                  on:input={(e)=>updateCountdownSeconds(index, e.target.value)}
+                  on:input={(e) =>
+                    updateCountdownSeconds(index, e.target.value)}
                   class="border border-gray-300 rounded px-2 w-20"
                 />
                 <button
                   on:click={() =>
                     startCountdown(
                       index,
-                      (Number(countdowns[index]?.minutes || 0) * 60) +
-                      Number(countdowns[index]?.seconds || 0)
+                      Number(countdowns[index]?.minutes || 0) * 60 +
+                        Number(countdowns[index]?.seconds || 0),
                     )}
                   class="bg-blue-500 text-white px-3 py-1 rounded"
                 >
@@ -311,6 +466,49 @@
 {:else}
   <p>Loading...</p>
 {/if}
+
+{#if showShoppingList}
+  <div
+    class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
+  >
+    <div class="bg-white p-6 rounded-lg shadow-lg w-1/3 text-center">
+      <h2 class="text-2xl font-bold mb-4">Shopping List</h2>
+      {#if missingIngredients.length > 0}
+        <ul>
+          {#each missingIngredients as ingredient}
+            <li>{ingredient.name} - {ingredient.requiredQuantity}g</li>
+          {/each}
+        </ul>
+        <div class="mt-4 flex gap-4 justify-center">
+          <button
+            on:click={saveShoppingList}
+            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Save Shopping List
+          </button>
+          <button
+            on:click={closeShoppingList}
+            class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+          >
+            Close
+          </button>
+        </div>
+      {:else}
+        <p>All ingredients are available in your pantry!</p>
+        <div class="mt-4">
+          <button
+            on:click={closeShoppingList}
+            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Close
+          </button>
+        </div>
+      {/if}
+    </div>
+  </div>
+{/if}
+
+
 
 <style>
   .fixed {

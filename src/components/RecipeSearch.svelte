@@ -6,6 +6,9 @@
   import { searchedIngredients } from '../lib/stores/ingredientStore';
   import { derived } from 'svelte/store';
 
+  import { writable } from "svelte/store";
+
+
   let pantry = [];
   const unsubscribe = pantryStore.subscribe((data) => {
     pantry = data;
@@ -21,15 +24,82 @@
   let recipes: any[] = [];
   let seasonalRecipes: any[] = [];
   let username = "";
+  let ingredient = writable<string>("");
+  let weight = writable<number>(0);
+  let expirationDate = writable<string>("");
+  let addManually = writable<boolean>(false);
+  let warningMessage = writable<string>("");  
+  let selectedIngredient = writable<string>("");
+  let selectedMeasurement = writable<string>("grams");
+
 
   const visibleRecipeCount = 6;
   let currentRecipeIndex1 = 0;
   let currentRecipeIndex2 = 0;
 
+  let user_id = 1;
+
   authStore.subscribe((state) => {
+    user_id=state.user?.id || 1;
+
     console.log("Auth store state in home page: ", state);
     username = state.user?.username || "";
   });
+
+
+  // Save new ingredient details (Add item to backend)
+  const saveIngredientDetails = async (): Promise<void> => {
+    const newItem = {
+      name: $ingredient,
+      quantity: $weight,
+      expiration_date: $expirationDate,
+      user_id: user_id, // Automatically associate the logged-in user
+    };
+
+    // Check if the expiration date is in the past
+    if (new Date(newItem.expiration_date).getTime() < new Date().getTime()) {
+      warningMessage.set("Please input a valid expiration date.");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `http://localhost:4010/pantry/add?user_id=${user_id}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(newItem),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log("Ingredient added successfully:", data);
+        pantryStore.update((currentPantry) => [...currentPantry, newItem]);
+      } else {
+        console.error("Error adding ingredient:", data.error);
+      }
+
+      // Reset input fields and close the form
+      ingredient.set("");
+      weight.set(0);
+      expirationDate.set("");
+      addManually.set(false);
+    } catch (error) {
+      console.error("Error saving ingredient:", error);
+    }
+  };
+
+  const openAddManually = () => {
+    ingredient.set("");
+    weight.set(0);
+    expirationDate.set("");
+    addManually.set(true);
+  };
+
 
   const searchRecipes = () => {
     if (!selectedIngredients.length) {
@@ -282,6 +352,67 @@
     }
 </script>
 
+<!-- Add Ingredient Form -->
+{#if $addManually}
+<div
+class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
+>
+<div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full relative">
+  <h2 class="text-2xl font-bold text-green-600 mb-4">Add an Ingredient</h2>
+  <div class="mb-4">
+    <input
+      type="string"
+      bind:value={$selectedIngredient}
+      class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+    />
+    Name
+  </div>
+  <div class="mb-4">
+    <input
+      type="number"
+      bind:value={$weight}
+      class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+    />
+    Select the amount
+  </div>
+  <div class="mb-4">
+    <select
+      bind:value={$selectedMeasurement}
+      class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+    >
+      <option value="grams">Grams</option>
+      <option value="milliliters">Milliliters</option>
+      <option value="pieces">Pieces</option>
+    </select>Measurement
+  </div>
+  <div class="mb-4">
+    <input
+      type="date"
+      bind:value={$expirationDate}
+      class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+    />
+    Select the expiration date
+  </div>
+  <div class="flex justify-end space-x-4">
+    <button
+      on:click={() => {
+        addManually.set(false); // Aquí cerramos el formulario
+      }}
+      class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+    >
+      Cancel
+    </button>
+    <button
+      on:click={saveIngredientDetails}
+      class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+    >
+      Save
+    </button>
+  </div>
+</div>
+</div>
+{/if}
+
 <div class="container mx-auto mt-8 px-4 lg:px-6 text-center">
     <h2 class="text-3xl font-bold text-green-800 italic mb-6">
         Hello, {username}!
@@ -291,6 +422,16 @@
     <div
         class="search-bar-container flex items-center justify-center w-full relative mb-8"
     >
+
+
+    <div class="ml-4 mr-4">
+        <button
+            class="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring focus:ring-green-300"
+            on:click={() => addManually.set(true)}
+        >
+            Add Manually
+        </button>
+    </div>
         <!-- Favourites Button -->
         <div class="ml-4 mr-4">
             <button
@@ -300,6 +441,7 @@
                 Favourites
             </button>
         </div>
+
 
         <div class="relative flex-grow max-w-2xl">
             <div class="relative">
@@ -387,7 +529,7 @@
             </button>
 
             <!-- List of Ingredients -->
-            <div class="flex items-center space-x-4 h-60 overflow-x-auto">
+            <div class="flex items-center space-x-4 h-40 overflow-x-auto">
                 {#each $nearestExpiringIngredients.slice(currentIngredientIndex, currentIngredientIndex + visibleIngredientCount) as item}
                     {#if (new Date(item.expiration_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24) <= 3}
                         <div
@@ -402,6 +544,7 @@
                                     class="w-12 h-12 object-cover"
                                 />
                             </div>
+
                             <span class="text-gray-700 text-sm">{item.name}</span>
                             <span class="text-gray-500 text-xs">Weight: {item.quantity}g</span>
                             <span class="text-gray-500 text-xs">Expires: {item.expiration_date}</span>
@@ -410,6 +553,11 @@
                             >
                                 Expiring today!
                             </span>
+
+                            <span class="text-gray-700 text-sm"
+                                >{item.name}</span
+                            >
+
                             {#if (new Date(item.expiration_date).getTime() - new Date().getTime()) / (1000 * 60 * 60) <= 24}
                                 <span class="text-red-500 text-xs absolute visible">Expiring today!</span>
                             {/if}

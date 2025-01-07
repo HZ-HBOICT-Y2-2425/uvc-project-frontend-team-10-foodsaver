@@ -195,4 +195,4 @@ build/
 *.drawio.bkp
 *.drawio.dtmp
 
-/src/lib/index.js
+src/lib/index.js

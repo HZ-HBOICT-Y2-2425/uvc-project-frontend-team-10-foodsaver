@@ -1,69 +1,62 @@
 <script lang="ts">
-    import { goto } from "$app/navigation";
-    import { derived } from "svelte/store";
-    import { onMount } from "svelte";
-    import { authStore } from "../lib/stores/authStore";
-    import { pantryStore } from "../lib/stores/pantryStore";
-    import { onDestroy } from "svelte";
+  import { goto } from "$app/navigation";
+  import { onDestroy, onMount } from "svelte";
+  import { authStore } from "../lib/stores/authStore";
+  import { pantryStore } from "../lib/stores/pantryStore";
+  import { searchedIngredients } from '../lib/stores/ingredientStore';
+  import { derived } from 'svelte/store';
 
-    // Create a local variable to store the pantry data
-    let pantry = [];
+  let pantry = [];
+  const unsubscribe = pantryStore.subscribe((data) => {
+    pantry = data;
+  });
 
-    // Subscribe to the store to get pantry data
-    const unsubscribe = pantryStore.subscribe((data) => {
-        pantry = data;
-    });
+  onDestroy(() => {
+    unsubscribe();
+  });
 
-    onDestroy(() => {
-        // Unsubscribe to avoid memory leaks
-        unsubscribe();
-    });
+  let searchQuery = "";
+  let searchActive = false;
+  let selectedIngredients: string[] = [];
+  let recipes: any[] = [];
+  let seasonalRecipes: any[] = [];
+  let username = "";
 
-    let searchQuery = "";
-    let searchActive = false;
-    let selectedIngredients: string[] = [];
-    let recipes: any[] = []; // Will store the fetched recipes
-    let seasonalRecipes: any[] = []; // Will store the fetched seasonal recipes
-    let username = "";
+  const visibleRecipeCount = 6;
+  let currentRecipeIndex1 = 0;
+  let currentRecipeIndex2 = 0;
 
-    const visibleRecipeCount = 6;
+  authStore.subscribe((state) => {
+    console.log("Auth store state in home page: ", state);
+    username = state.user?.username || "";
+  });
 
-    let currentRecipeIndex1 = 0;
-    let currentRecipeIndex2 = 0;
+  const searchRecipes = () => {
+    if (!selectedIngredients.length) {
+      alert("Please select at least one ingredient to search for recipes.");
+    } else {
+      const ingredientsParam = selectedIngredients.join(",");
+      searchedIngredients.set(selectedIngredients); // Update the store with selected ingredients
+      goto(`/search?ingredients=${ingredientsParam}`);
+    }
+  };
 
-    authStore.subscribe((state) => {
-        console.log("Auth store state in home page: ", state);
-        username = state.user?.username || "";
-    });
+  const handleImageError = (event: Event) => {
+    const img = event.target as HTMLImageElement;
+    img.src = "/images/placeholder.png";
+  };
 
-    // Trigger search function
-    const searchRecipes = () => {
-        if (!selectedIngredients.length) {
-            alert("Please select at least one ingredient to search for recipes.");
-        } else {
-            const ingredientsParam = selectedIngredients.join(",");
-            goto(`/search?ingredients=${ingredientsParam}`);
-        }
-    };
+  const previousRecipes1 = () => {
+    if (currentRecipeIndex1 > 0) {
+      currentRecipeIndex1 -= 1;
+    }
+  };
 
-    // Fallback for broken image
-    const handleImageError = (event: Event) => {
-        const img = event.target as HTMLImageElement;
-        img.src = "/images/placeholder.png";
-    };
-
-    // Recipe navigation functions for first section
-    const previousRecipes1 = () => {
-        if (currentRecipeIndex1 > 0) {
-            currentRecipeIndex1 -= 1;
-        }
-    };
-
-    const nextRecipes1 = () => {
-        if (currentRecipeIndex1 + visibleRecipeCount < recipes.length) {
-            currentRecipeIndex1 += 1;
-        }
-    };
+  const nextRecipes1 = () => {
+    if (currentRecipeIndex1 + visibleRecipeCount < recipes.length) {
+      currentRecipeIndex1 += 1;
+    }
+  };
 
     // Recipe navigation functions for seasonal recipes
     const previousRecipes2 = () => {
@@ -397,7 +390,9 @@
             <div class="flex items-center space-x-4 h-60 overflow-x-auto">
                 {#each $nearestExpiringIngredients.slice(currentIngredientIndex, currentIngredientIndex + visibleIngredientCount) as item}
                     {#if (new Date(item.expiration_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24) <= 3}
-                        <div class="flex flex-col items-center space-y-2">
+                        <div
+                            class="flex flex-col items-center space-y-2 min-h-[120px]"
+                        >
                             <div
                                 class="bg-gray-200 w-20 h-20 rounded-full flex items-center justify-center"
                             >
@@ -407,22 +402,22 @@
                                     class="w-12 h-12 object-cover"
                                 />
                             </div>
-                            <span class="text-gray-700 text-sm"
-                                >{item.name}</span
+                            <span class="text-gray-700 text-sm">{item.name}</span>
+                            <span class="text-gray-500 text-xs">Weight: {item.quantity}g</span>
+                            <span class="text-gray-500 text-xs">Expires: {item.expiration_date}</span>
+                            <span
+                                class="text-red-500 text-xs invisible"
                             >
-                            <span class="text-gray-500 text-xs"
-                                >Weight: {item.quantity}g</span
-                            >
-                            <span class="text-gray-500 text-xs"
-                                >Expires: {item.expiration_date}</span
-                            >
+                                Expiring today!
+                            </span>
                             {#if (new Date(item.expiration_date).getTime() - new Date().getTime()) / (1000 * 60 * 60) <= 24}
-                                <span class="text-red-500 text-xs">Expiring today!</span>
+                                <span class="text-red-500 text-xs absolute visible">Expiring today!</span>
                             {/if}
                         </div>
                     {/if}
                 {/each}
             </div>
+            
 
             <!-- Right Arrow Button -->
             <button

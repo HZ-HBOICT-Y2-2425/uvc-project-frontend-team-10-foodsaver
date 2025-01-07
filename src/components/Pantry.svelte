@@ -18,7 +18,7 @@
   let editIndex = writable<number | null>(null);
   let removeManually = writable<boolean>(false);
   let warningMessage = writable<string>("");
-  let selectedMeasurement = writable<string>("grams");
+  let selectedMeasurement = writable<string>("");
   let pantry = [];
   let categories = [];
 
@@ -142,8 +142,9 @@
       ingredient.set("");
       weight.set(0);
       expirationDate.set("");
-      addManually.set(false);
+      measurement.set("");
       category.set("");
+      addManually.set(false);
     } catch (error) {
       console.error("Error saving ingredient:", error);
     }

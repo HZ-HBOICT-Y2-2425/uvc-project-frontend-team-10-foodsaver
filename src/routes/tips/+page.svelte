@@ -3,7 +3,7 @@
 </script>
 
 <div>
-    <div class="header">Tips & Tricks</div>
+    <div class="header z-50">Tips & Tricks</div>
     <div class="container">
         <a href="makeUseOfIngredients" class="card-link">
             <div class="card">
@@ -42,47 +42,47 @@
             </div>
         </a>
     </div>
-<!-- Leafs picture -->
-<img
-  class="LeafBackgroundRemoved9 w-72 h-60 left-[-80.30px] top-[800px] absolute origin-top-left rotate-[0.0deg] rounded-xl -z-10"
-  src="../../../leaf-background2.png"
-  alt="Leaf Background"
-/>
+    <!-- Leafs picture -->
+    <img
+        class="LeafBackgroundRemoved9 w-72 h-60 left-[-80.30px] top-[800px] absolute origin-top-left rotate-[0.0deg] rounded-xl -z-10"
+        src="../../../leaf-background2.png"
+        alt="Leaf Background"
+    />
 
-<img
-  class="LeafBackgroundRemoved9 w-72 h-60 right-[-90px] top-[250px] absolute origin-top-left rotate-[270deg] rounded-xl -z-10"
-  src="../../../leaf-background1.png"
-  alt="Leaf Background"
-/>
+    <img
+        class="LeafBackgroundRemoved9 w-72 h-60 right-[-90px] top-[250px] absolute origin-top-left rotate-[270deg] rounded-xl -z-10"
+        src="../../../leaf-background1.png"
+        alt="Leaf Background"
+    />
 </div>
 
 <style>
     .container {
         display: grid;
-        grid-template-columns: repeat(2, 1fr); /* Dos tarjetas por fila */
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
         gap: 1rem;
-        margin: 2rem;
+        margin: 2rem auto;
+        padding: 1rem;
+        max-width: 1200px;
     }
 
     .card-link {
-        text-decoration: none; /* Quita el subrayado de los enlaces */
+        text-decoration: none;
     }
 
     .card {
         position: relative;
         overflow: hidden;
-        top: 3rem;
         border-radius: 10px;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         width: 100%;
-        height: 500px;
-        margin: 0 auto;
-        transition: transform 0.3s ease, box-shadow 0.3s ease; /* Transición suave */
+        aspect-ratio: 16 / 9;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
 
     .card:hover {
-        transform: scale(1.05); /* Agrandar al pasar el cursor */
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3); /* Sombra más intensa */
+        transform: scale(1.05);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
     }
 
     .card img {
@@ -97,62 +97,36 @@
         left: 50%;
         transform: translate(-50%, -50%);
         color: white;
-        font-size: 1.5rem; /* Texto más pequeño */
+        font-size: 1.2rem;
         font-weight: bold;
         text-align: center;
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
-    }
-
-    .header {
-        position: absolute;
-        top: 5rem;
-        left: 1rem;
-        font-size: 2rem;
-        color: #2e962e;
-        transform: rotate(-10deg);
-        padding: 0.5rem 1rem;
+        padding: 0.5rem;
+        background: rgba(0, 0, 0, 0.4);
         border-radius: 5px;
     }
 
-    @media (max-width: 768px) {
-        .container {
-            grid-template-columns: 1fr; /* Una tarjeta por fila en dispositivos móviles */
-        }
+    .header {
+        font-size: 2rem;
+        color: #2e962e;
+        text-align: center;
+        margin: 1rem auto;
+        font-weight: bold;
+    }
 
-        .card {
-            width: 100%; /* Ocupar todo el ancho en pantallas pequeñas */
-            height: 180px; /* Ajuste menor para pantallas pequeñas */
+    @media (max-width: 768px) {
+        .header {
+            font-size: 1.5rem;
         }
 
         .card-title {
-            font-size: 1.3rem;
-        }
-
-        .header {
-            font-size: 1.8rem;
-            top: 2rem;
+            font-size: 1rem;
         }
     }
 
     @media (min-width: 1024px) {
-        .container {
-            grid-template-columns: repeat(
-                2,
-                1fr
-            ); /* Mantener dos tarjetas por fila en pantallas grandes */
-        }
-
         .card {
-            width: 85%; /* Reducir aún más en pantallas grandes */
-            height: 220px; /* Ajustar tamaño */
-        }
-
-        .card-title {
-            font-size: 1.7rem;
-        }
-
-        .header {
-            font-size: 2.2rem;
+            max-width: 400px;
         }
     }
 </style>

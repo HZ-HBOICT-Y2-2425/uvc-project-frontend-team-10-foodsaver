@@ -1,10 +1,16 @@
 <script lang="ts">
   import { authStore } from "./../../../lib/stores/authStore.js";
   import { goto } from "$app/navigation";
-  import { pantryStore } from "./../../../lib/stores/pantryStore"; // Import pantry store
-  import { searchedIngredients } from "./../../../lib/stores/ingredientStore.js";
-  import { writable } from "svelte/store";
+  import {
+    pantryStore,
+    categoriesStore,
+  } from "./../../../lib/stores/pantryStore"; // Import pantry store
+  import { writable, derived, get } from "svelte/store";
   import { onMount, onDestroy } from "svelte";
+  import {
+    convertToGrams,
+    convertToMilliliters,
+  } from "../../../utils/conversion.js";
 
   let user_id = 1;
   authStore.subscribe((state) => {
@@ -19,15 +25,32 @@
   let countdowns: Countdown[] = [];
   let showModal = false;
   let pantry = [];
+  let categories = [];
   let showIngredientModal = writable<boolean>(false);
   let currentStepIndex = writable<number | null>(null);
-  let name = writable<string>("");
   let amountUsed = writable<number>(0);
   let measurementUnit = writable<string>("grams");
   let selectedIngredient = writable<string>("");
-  let selectedMeasurement = writable<string>("");
-  let selectedIngredients: { [key: string]: { amount: number, measurement: string } } = {}; // Initialize selectedIngredients
-  let amount = writable<number>(0);
+  let selectedIngredients: {
+    [key: string]: { amount: number; measurement: string };
+  } = {}; // Initialize selectedIngredients
+  let warningMessage = writable<string>("");
+  let editIngredient = writable<string>("");
+  let editAmount = writable<number>(0);
+  let editMeasurement = writable<string>("grams");
+  let showEditModal = writable<boolean>(false);
+
+  const measurementUnits = [
+    "grams",
+    "milliliters",
+    "pieces",
+    "tablespoons",
+    "teaspoons",
+    "cups",
+    "pounds",
+    "ounces",
+    "liters",
+  ];
 
   interface Countdown {
     time: number;
@@ -36,13 +59,18 @@
   }
 
   // Subscribe to the pantry store to get pantry data
-  const unsubscribe = pantryStore.subscribe((data) => {
+  const unsubscribe_pantry = pantryStore.subscribe((data) => {
     pantry = data;
+  });
+
+  const unsubscribe_categories = categoriesStore.subscribe((data) => {
+    categories = data;
   });
 
   onDestroy(() => {
     // Unsubscribe to avoid memory leaks
-    unsubscribe();
+    unsubscribe_pantry();
+    unsubscribe_categories();
   });
 
   // Fetch pantry items from backend when component mounts
@@ -78,11 +106,64 @@
     showIngredientModal.set(false);
   };
 
+  const saveEditedAmount = (): void => {
+    const ingredientName = $editIngredient;
+    selectedIngredients[ingredientName] = {
+      amount: $editAmount,
+      measurement: $editMeasurement,
+    };
+
+    // Close the form
+    showEditModal.set(false);
+  };
+
+  const removeSelectedIngredient = (ingredientName: string): void => {
+    delete selectedIngredients[ingredientName];
+  };
+
+  // Filter only the pantry items without categories
+  const filteredPantry = derived(pantryStore, ($pantry) => {
+    if (!$pantry || !$pantry.pantryItems) {
+      return [];
+    }
+
+    // Extract pantry items without categories
+    const filteredPantryItems = $pantry.pantryItems;
+
+    return filteredPantryItems;
+  });
+
   const updateAllIngredients = async (): Promise<void> => {
+    let invalidIngredients = []; // Array to collect invalid ingredient names
     try {
-      for (const [ingredientName, details] of Object.entries(selectedIngredients)) {
-        const currentQuantity = pantry.find(item => item.name === ingredientName)?.quantity || 0;
-        const newQuantity = currentQuantity - details.amount;
+      const $filteredPantry = get(filteredPantry); // Get the current value of filteredPantry
+
+      for (const [ingredientName, details] of Object.entries(
+        selectedIngredients,
+      )) {
+        const ingredient = $filteredPantry.find((item) => item.name === ingredientName);
+        const currentQuantity = ingredient?.quantity || 0;
+        const currentMeasurement = ingredient?.measurement || 'grams';
+        let newQuantity = currentQuantity;
+
+        // Convert the amount used to the same unit as the current quantity
+        if (currentMeasurement === 'grams') {
+          if (['grams', 'kilograms', 'tablespoons', 'teaspoons', 'cups', 'pounds'].includes(details.measurement)) {
+            newQuantity -= convertToGrams(details.amount, details.measurement);
+          } else {
+            invalidIngredients.push(ingredientName);
+            continue;
+          }
+        } else if (currentMeasurement === 'milliliters') {
+          if (['milliliters', 'liters', 'tablespoons', 'teaspoons', 'cups', 'ounces'].includes(details.measurement)) {
+            newQuantity -= convertToMilliliters(details.amount, details.measurement);
+          } else {
+            invalidIngredients.push(ingredientName);
+            continue;
+          }
+        } else {
+          newQuantity -= details.amount;
+        }
 
         if (newQuantity <= 0) {
           await removeIngredient(ingredientName);
@@ -90,7 +171,7 @@
           const updateItem = {
             name: ingredientName,
             quantity: newQuantity,
-            measurement: details.measurement,
+            measurement: currentMeasurement,
             user_id: user_id, // Automatically associate the logged-in user
           };
 
@@ -110,18 +191,21 @@
           if (response.ok) {
             console.log("Ingredient updated successfully:", data);
           } else {
-            console.error("Error updating ingredient:", data.error);
+            warningMessage.set(`Error updating ingredient: ${ingredientName}. ${data.error}`);
           }
         }
       }
 
-      fetchPantryItems(); // Reload pantry items
-      selectedIngredients = {}; // Reset selected ingredients
+      if (invalidIngredients.length > 0) {
+        warningMessage.set(`Select a valid measurement for the following ingredients: ${invalidIngredients.join(', ')}`);
+      } else {
+        fetchPantryItems(); // Reload pantry items
+        selectedIngredients = {}; // Reset selected ingredients
+      }
     } catch (error) {
-      console.error("Error updating ingredients:", error);
+      warningMessage.set(`Error updating ingredients: ${error.message}`);
     }
   };
-
   const removeIngredient = async (name): Promise<void> => {
     try {
       const response = await fetch(
@@ -142,10 +226,37 @@
 
         console.log("Updated pantry in frontend:", pantry);
       } else {
-        console.error("Error removing ingredient:", data.error);
+        warningMessage.set(`Error removing ingredient: ${name}. ${data.error}`);
       }
     } catch (error) {
-      console.error("Error removing ingredient:", error);
+      warningMessage.set(`Error removing ingredient: ${name}. ${error.message}`);
+    }
+  };
+
+  const updateSavings = async (user_id, moneySaved, co2Saved) => {
+    try {
+      const response = await fetch(
+        `http://localhost:4000/users/${user_id}/savings`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            money_saved: moneySaved,
+            co2_saved: co2Saved,
+          }),
+        },
+      );
+
+      const data = await response.json();
+      if (data.success) {
+        console.log("Savings updated successfully!");
+      } else {
+        console.error("Error updating savings:", data.message);
+      }
+    } catch (error) {
+      console.error("Error updating savings:", error);
     }
   };
 
@@ -161,13 +272,6 @@
   }
 
   checkFavoriteStatus();
-
-  const openIngredientModal = (item) => {
-    selectedIngredient.set(item.name);
-    amount.set(0);
-    selectedMeasurement.set(item.measurement);
-    showIngredientModal.set(true);
-  };
 
   // Toggle favorite status
   export async function toggleFavorite() {
@@ -271,13 +375,7 @@
       };
     }
   }
-
-  let ingredients = [];
-  searchedIngredients.subscribe((items) => {
-    ingredients = items;
-  });
 </script>
-
 {#if recipe}
   <div class="w-full mx-auto px-4">
     <section class="flex flex-col lg:flex-row mt-5">
@@ -313,6 +411,23 @@
             <p class="text-lg font-semibold">Selected Ingredient:</p>
             <p>Name: {ingredientName}</p>
             <p>Amount Used: {details.amount} {details.measurement}</p>
+            <button
+              class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 mt-2"
+              on:click={() => {
+                editIngredient.set(ingredientName);
+                editAmount.set(details.amount);
+                editMeasurement.set(details.measurement);
+                showEditModal.set(true);
+              }}
+            >
+              Edit
+            </button>
+            <button
+              class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 mt-2 ml-2"
+              on:click={() => removeSelectedIngredient(ingredientName)}
+            >
+              Remove
+            </button>
           </div>
         {/each}
 
@@ -365,8 +480,8 @@
 
         <h2 class="text-2xl lg:text-4xl mt-3 mb-1">Instructions</h2>
         <p class="mb-1 text-gray-500 text-sm">
-          (Make sure to input the amount of ingredients used after every step so
-          we can calculate how much CO2 and money you have saved.)
+          (Don't forget to input the amount of ingredients used after every step
+          so we can calculate how much CO2 and money you have saved.)
         </p>
         {#each getSteps(recipe.instructions) as step, index (step)}
           <div class="step flex flex-col lg:flex-row items-start gap-4 mb-4">
@@ -429,7 +544,10 @@
             <div class="flex-1">
               {#if selectedIngredients[index]}
                 <p class="mt-2 text-green-600">
-                  Used: {selectedIngredients[index].name}, {selectedIngredients[ index ].amount} {selectedIngredients[index].measurement}
+                  Used: {selectedIngredients[index].name}, {selectedIngredients[
+                    index
+                  ].amount}
+                  {selectedIngredients[index].measurement}
                 </p>
               {/if}
             </div>
@@ -474,7 +592,7 @@
             class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
           >
             <option value="">Select an ingredient</option>
-            {#each pantry as ingredient}
+            {#each $filteredPantry as ingredient}
               <option value={ingredient.name}>{ingredient.name}</option>
             {/each}
           </select>
@@ -491,9 +609,9 @@
             bind:value={$measurementUnit}
             class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
           >
-            <option value="grams">Grams</option>
-            <option value="milliliters">Milliliters</option>
-            <option value="pieces">Pieces</option>
+            {#each measurementUnits as unit}
+              <option value={unit}>{unit}</option>
+            {/each}
           </select>Measurement
         </div>
         <div class="flex justify-end space-x-4">
@@ -508,6 +626,70 @@
             class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
           >
             Save
+          </button>
+        </div>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Modal for Editing Ingredient Amount -->
+  {#if $showEditModal}
+    <div
+      class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
+    >
+      <div class="bg-white p-6 rounded-lg shadow-lg w-11/12 md:max-w-md">
+        <h2 class="text-2xl font-bold text-green-600 mb-4">
+          Edit {$selectedIngredient}
+        </h2>
+        <div class="mb-4">
+          <input
+            type="number"
+            bind:value={$editAmount}
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+          />Amount
+        </div>
+        <div class="mb-4">
+          <select
+            bind:value={$editMeasurement}
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+          >
+            {#each measurementUnits as unit}
+              <option value={unit}>{unit}</option>
+            {/each}
+          </select>Measurement
+        </div>
+        <div class="flex justify-end space-x-4">
+          <button
+            on:click={() => showEditModal.set(false)}
+            class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+          >
+            Cancel
+          </button>
+          <button
+            on:click={saveEditedAmount}
+            class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Warning Popup -->
+  {#if $warningMessage}
+    <div
+      class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
+    >
+      <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
+        <h2 class="text-2xl font-bold text-red-600 mb-4">Warning</h2>
+        <p class="text-gray-700 mb-4">{$warningMessage}</p>
+        <div class="flex justify-end">
+          <button
+            on:click={() => warningMessage.set("")}
+            class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+          >
+            Close
           </button>
         </div>
       </div>

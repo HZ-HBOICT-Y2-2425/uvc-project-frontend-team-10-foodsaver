@@ -2,13 +2,15 @@
   import { onMount } from "svelte";
   import { writable } from "svelte/store";
   import { authStore } from "../lib/stores/authStore"; // Auth store for user authentication
-  import { pantryStore } from "../lib/stores/pantryStore";
+  import { pantryStore, categoriesStore } from "../lib/stores/pantryStore";
   import { onDestroy } from "svelte";
+  import { convertToGrams, convertToMilliliters } from "../utils/conversion.js";
 
   // Writable stores to manage input states
   let ingredient = writable<string>("");
   let weight = writable<number>(0);
   let expirationDate = writable<string>("");
+  let category = writable<string>("");
   let addManually = writable<boolean>(false);
   let selectedIngredient = writable<string>("");
   let selectedIngredientOriginal = writable<string>("");
@@ -17,6 +19,14 @@
   let removeManually = writable<boolean>(false);
   let warningMessage = writable<string>("");
   let selectedMeasurement = writable<string>("grams");
+  let pantry = [];
+  let categories = [];
+
+  const measurementUnits = [
+    "grams",
+    "milliliters",
+    "pieces",
+  ];
 
   // Default user ID to 1, will be updated from the auth store
   let user_id = 1;
@@ -28,27 +38,32 @@
     console.log("user id is: ", user_id);
   });
 
-  let pantry = [];
-
   // Subscribe to the store to get pantry data
-  const unsubscribe = pantryStore.subscribe((data) => {
+  const unsubscribe_pantry = pantryStore.subscribe((data) => {
     pantry = data;
+  });
+
+  const unsubscribe_categories = categoriesStore.subscribe((data) => {
+    categories = data;
   });
 
   onDestroy(() => {
     // Unsubscribe to avoid memory leaks
-    unsubscribe();
+    unsubscribe_pantry();
+    unsubscribe_categories();
   });
 
   // display ingredients in the pantry
   async function fetchPantryItems() {
     try {
       const response = await fetch(
-        `http://localhost:4010/pantry?user_id=${user_id}`
+        `http://localhost:4010/pantry?user_id=${user_id}`,
       );
       const data = await response.json();
       if (response.ok) {
-        pantry = data;
+        pantry = data.pantryItems;
+        categories = data.categories;
+        categoriesStore.set(data.categories.map((cat) => cat.category));
         pantryStore.set(pantry);
         checkExpiredIngredients();
       } else {
@@ -82,6 +97,7 @@
       quantity: $weight,
       measurement: $selectedMeasurement,
       expiration_date: $expirationDate,
+      category: $category,
       user_id: user_id, // Automatically associate the logged-in user
     };
 
@@ -127,6 +143,7 @@
       weight.set(0);
       expirationDate.set("");
       addManually.set(false);
+      category.set("");
     } catch (error) {
       console.error("Error saving ingredient:", error);
     }
@@ -209,6 +226,7 @@
 
   // Function to open the "Add Manually" form
   const openAddManually = () => {
+    category.set("");
     ingredient.set("");
     weight.set(0);
     expirationDate.set("");
@@ -297,7 +315,9 @@
     <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full relative">
       <!-- Warning Popup -->
       {#if $warningMessage}
-        <div class="absolute inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+        <div
+          class="absolute inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
+        >
           <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
             <h2 class="text-2xl font-bold text-red-600 mb-4">Warning</h2>
             <p class="text-gray-700 mb-4">{$warningMessage}</p>
@@ -321,10 +341,21 @@
       </h2>
       {#if !$editMode}
         <div class="mb-4">
+          <select
+            bind:value={$category}
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+          >
+            <option value="">Select a category</option>
+            {#each categories as category}
+              <option value={category}>{category}</option>
+            {/each}
+          </select>Category
+        </div>
+        <div class="mb-4">
           <input
             type="string"
             bind:value={$selectedIngredient}
-            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2  focus:ring-green-500 focus:outline-none"
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
           />Name
         </div>
       {/if}
@@ -332,7 +363,7 @@
         <input
           type="number"
           bind:value={$weight}
-          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2  focus:ring-green-500 focus:outline-none"
+          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
         />Select the amount
       </div>
       <div class="mb-4">
@@ -340,16 +371,16 @@
           bind:value={$selectedMeasurement}
           class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
         >
-          <option value="grams">Grams</option>
-          <option value="milliliters">Milliliters</option>
-          <option value="pieces">Pieces</option>
+          {#each measurementUnits as unit}
+            <option value={unit}>{unit}</option>
+          {/each}
         </select>Measurement
       </div>
       <div class="mb-4">
         <input
           type="date"
           bind:value={$expirationDate}
-          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2  focus:ring-green-500 focus:outline-none"
+          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
         />Select the expiration date
       </div>
       <div class="flex justify-end space-x-4">

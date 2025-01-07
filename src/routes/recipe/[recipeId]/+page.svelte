@@ -1,12 +1,50 @@
 <script lang="ts">
+  import { authStore } from "./../../../lib/stores/authStore.js";
+  import { goto } from "$app/navigation";
+  import {
+    pantryStore,
+    categoriesStore,
+  } from "./../../../lib/stores/pantryStore"; // Import pantry store
+  import { writable, derived, get } from "svelte/store";
+  import { onMount, onDestroy } from "svelte";
+  import {
+    convertToGrams,
+    convertToMilliliters,
+  } from "../../../utils/conversion.js";
 
-	import { authStore } from './../../../lib/stores/authStore.js';
-import { goto } from "$app/navigation";
+  let user_id = 1;
+  authStore.subscribe((state) => {
+    user_id = state.user?.id || 1;
+  });
+  let isFavorite = false;
+  let countdowns: Countdown[] = [];
+  let showModal = false;
+  let pantry = [];
+  let categories = [];
+  let showIngredientModal = writable<boolean>(false);
+  let currentStepIndex = writable<number | null>(null);
+  let amountUsed = writable<number>(0);
+  let measurementUnit = writable<string>("grams");
+  let selectedIngredient = writable<string>("");
+  let selectedIngredients: {
+    [key: string]: { amount: number; measurement: string };
+  } = {}; // Initialize selectedIngredients
+  let warningMessage = writable<string>("");
+  let editIngredient = writable<string>("");
+  let editAmount = writable<number>(0);
+  let editMeasurement = writable<string>("grams");
+  let showEditModal = writable<boolean>(false);
 
-let pantry = [];
-let missingIngredients = [];
-let showShoppingList = false;
-let user_id = 1;
+  const measurementUnits = [
+    "grams",
+    "milliliters",
+    "pieces",
+    "tablespoons",
+    "teaspoons",
+    "cups",
+    "pounds",
+    "ounces",
+  ];
 
 authStore.subscribe((state) => {
   console.log("Auth store state in home page: ", state);
@@ -27,6 +65,21 @@ async function fetchPantryItems() {
     console.error("Error fetching pantry items:", error);
   }
 }
+
+  // Subscribe to the pantry store to get pantry data
+  const unsubscribe_pantry = pantryStore.subscribe((data) => {
+    pantry = data;
+  });
+
+  const unsubscribe_categories = categoriesStore.subscribe((data) => {
+    categories = data;
+  });
+
+  onDestroy(() => {
+    // Unsubscribe to avoid memory leaks
+    unsubscribe_pantry();
+    unsubscribe_categories();
+  });
 
 function toggleShoppingList() {
   if (!showShoppingList) {
@@ -52,6 +105,7 @@ function findMissingIngredients() {
     const pantryItem = pantry.find(
       (item) => item.name.toLowerCase() === recipeIngredient.name.toLowerCase()
     );
+
 
     if (!pantryItem || pantryItem.quantity < recipeIngredient.requiredQuantity) {
       const missingQuantity =
@@ -81,6 +135,21 @@ async function saveShoppingList() {
     recipeImage: recipe.image,       // Recipe image URL
   });
 
+  async function fetchPantryItems() {
+    try {
+      const response = await fetch(
+        `http://localhost:4010/pantry?user_id=${user_id}`,
+      );
+      const data = await response.json();
+      if (response.ok) {
+        pantry = data;
+        pantryStore.set(pantry);
+        categories = data.categories;
+      } else {
+        console.error("Error fetching pantry items:", data.error);
+      }
+    } catch (error) {
+      console.error("Error fetching pantry items:", error);
   if (missingIngredients.length === 0) {
     alert("No missing ingredients to save!");
     return;
@@ -105,11 +174,175 @@ async function saveShoppingList() {
       const error = await shoppingListResponse.json();
       console.error("Failed to save shopping list:", error);
       alert("Failed to save shopping list.");
+
     }
   } catch (error) {
     console.error("Error saving shopping list:", error);
     alert("Error saving shopping list.");
   }
+
+  const saveUsedAmount = (): void => {
+    const selectedIngredientValue = $selectedIngredient; // Get the value of selectedIngredient
+    selectedIngredients[selectedIngredientValue] = {
+      amount: $amountUsed,
+      measurement: $measurementUnit,
+    };
+
+    // Close the form
+    showIngredientModal.set(false);
+  };
+
+  const saveEditedAmount = (): void => {
+    const ingredientName = $editIngredient;
+    selectedIngredients[ingredientName] = {
+      amount: $editAmount,
+      measurement: $editMeasurement,
+    };
+
+    // Close the form
+    showEditModal.set(false);
+  };
+
+  const removeSelectedIngredient = (ingredientName: string): void => {
+    delete selectedIngredients[ingredientName];
+  };
+
+  // Filter only the pantry items without categories
+  const filteredPantry = derived(pantryStore, ($pantry) => {
+    if (!$pantry || !$pantry.pantryItems) {
+      return [];
+    }
+
+    // Extract pantry items without categories
+    const filteredPantryItems = $pantry.pantryItems;
+
+    return filteredPantryItems;
+  });
+
+  const updateAllIngredients = async (): Promise<void> => {
+    let invalidIngredients = []; // Array to collect invalid ingredient names
+    try {
+      const $filteredPantry = get(filteredPantry); // Get the current value of filteredPantry
+
+      for (const [ingredientName, details] of Object.entries(
+        selectedIngredients,
+      )) {
+        const ingredient = $filteredPantry.find((item) => item.name === ingredientName);
+        const currentQuantity = ingredient?.quantity || 0;
+        const currentMeasurement = ingredient?.measurement || 'grams';
+        let newQuantity = currentQuantity;
+
+        // Convert the amount used to the same unit as the current quantity
+        if (currentMeasurement === 'grams') {
+          if (['grams', 'kilograms', 'tablespoons', 'teaspoons', 'cups', 'pounds'].includes(details.measurement)) {
+            newQuantity -= convertToGrams(details.amount, details.measurement);
+          } else {
+            invalidIngredients.push(ingredientName);
+            continue;
+          }
+        } else if (currentMeasurement === 'milliliters') {
+          if (['milliliters', 'liters', 'tablespoons', 'teaspoons', 'cups', 'ounces'].includes(details.measurement)) {
+            newQuantity -= convertToMilliliters(details.amount, details.measurement);
+          } else {
+            invalidIngredients.push(ingredientName);
+            continue;
+          }
+        } else {
+          newQuantity -= details.amount;
+        }
+
+        if (newQuantity <= 0) {
+          await removeIngredient(ingredientName);
+        } else {
+          const updateItem = {
+            name: ingredientName,
+            quantity: newQuantity,
+            measurement: currentMeasurement,
+            user_id: user_id, // Automatically associate the logged-in user
+          };
+
+          const response = await fetch(
+            `http://localhost:4010/pantry/update/${encodeURIComponent(ingredientName)}?user_id=${user_id}`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(updateItem),
+            },
+          );
+
+          const data = await response.json();
+
+          if (response.ok) {
+            console.log("Ingredient updated successfully:", data);
+          } else {
+            warningMessage.set(`Error updating ingredient: ${ingredientName}. ${data.error}`);
+          }
+        }
+      }
+
+      if (invalidIngredients.length > 0) {
+        warningMessage.set(`Select a valid measurement for the following ingredients: ${invalidIngredients.join(', ')}`);
+      } else {
+        fetchPantryItems(); // Reload pantry items
+        selectedIngredients = {}; // Reset selected ingredients
+      }
+    } catch (error) {
+      warningMessage.set(`Error updating ingredients: ${error.message}`);
+    }
+  };
+  const removeIngredient = async (name): Promise<void> => {
+    try {
+      const response = await fetch(
+        `http://localhost:4010/pantry/delete/${name}?user_id=${user_id}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log("Ingredient removed successfully:", data);
+
+        // Remove the ingredient from the pantry array in the frontend
+        pantry = pantry.filter((item) => item.name !== name);
+        pantryStore.set(pantry); // Update the store with the new array
+
+        console.log("Updated pantry in frontend:", pantry);
+      } else {
+        warningMessage.set(`Error removing ingredient: ${name}. ${data.error}`);
+      }
+    } catch (error) {
+      warningMessage.set(`Error removing ingredient: ${name}. ${error.message}`);
+    }
+  };
+
+  const updateSavings = async (user_id, moneySaved, co2Saved) => {
+    try {
+      const response = await fetch(
+        `http://localhost:4000/users/${user_id}/savings`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            money_saved: moneySaved,
+            co2_saved: co2Saved,
+          }),
+        },
+      );
+
+      const data = await response.json();
+      if (data.success) {
+        console.log("Savings updated successfully!");
+      } else {
+        console.error("Error updating savings:", data.message);
+      }
+    } catch (error) {
+      console.error("Error updating savings:", error);
 }
 
 async function fetchShoppingLists() {
@@ -196,6 +429,7 @@ fetchPantryItems();
   }
 
   checkFavoriteStatus();
+  // Toggle favorite status
 
   export async function toggleFavorite() {
     if (isFavorite) {
@@ -305,9 +539,98 @@ fetchPantryItems();
   function closeModal() {
     showModal = false;
   }
-</script>
 
+  function updateCountdownMinutes(index: number, minutes: string) {
+    const value = parseInt(minutes, 10);
+    if (!isNaN(value)) {
+      countdowns[index] = {
+        ...countdowns[index],
+        minutes: value,
+      };
+    }
+  }
+
+  function updateCountdownSeconds(index: number, seconds: string) {
+    const value = parseInt(seconds, 10);
+    if (!isNaN(value)) {
+      countdowns[index] = {
+        ...countdowns[index],
+        seconds: value,
+      };
+    }
+  }
+</script>
 {#if recipe}
+  <div class="w-full mx-auto px-4">
+    <section class="flex flex-col lg:flex-row mt-5">
+      <div
+        class="basis-full lg:basis-2/6 bg-gray-100 rounded-lg p-4 lg:p-10 lg:mr-8 mb-4 lg:mb-0"
+      >
+        <img
+          class="rounded-lg mb-5 w-full"
+          src={recipe.image}
+          alt={recipe.title}
+        />
+        <h2 class="text-2xl lg:text-4xl mt-3 mb-3">
+          Ingredients in Your Pantry
+        </h2>
+
+        <!-- Button to add amount used -->
+        <button
+          class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full mb-4 hidden lg:block"
+          on:click={() => showIngredientModal.set(true)}
+        >
+          Add Amount Used
+        </button>
+        <img
+          src="./../../add-button.png"
+          alt="Add Amount Used"
+          class="w-20 h-20 fixed bottom-5 left-1/2 transform -translate-x-1/2 lg:hidden z-50 cursor-pointer"
+          on:click={() => showIngredientModal.set(true)}
+        />
+
+        <!-- Display selected ingredient details -->
+        {#each Object.entries(selectedIngredients) as [ingredientName, details]}
+          <div class="bg-white p-4 rounded-lg shadow-md mb-4">
+            <p class="text-lg font-semibold">Selected Ingredient:</p>
+            <p>Name: {ingredientName}</p>
+            <p>Amount Used: {details.amount} {details.measurement}</p>
+            <button
+              class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 mt-2"
+              on:click={() => {
+                editIngredient.set(ingredientName);
+                editAmount.set(details.amount);
+                editMeasurement.set(details.measurement);
+                showEditModal.set(true);
+              }}
+            >
+              Edit
+            </button>
+            <button
+              class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 mt-2 ml-2"
+              on:click={() => removeSelectedIngredient(ingredientName)}
+            >
+              Remove
+            </button>
+          </div>
+        {/each}
+
+        <!-- CO2 Calculation Button -->
+        <div
+          class="recipe-card mt-3 p-4 bg-white border border-gray-300 rounded-lg text-center"
+        >
+          <p class="text-lg font-semibold mb-4">
+            If you finished this recipe, click below to calculate your CO2
+            reduction.
+          </p>
+          <button
+            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full"
+            on:click={updateAllIngredients}
+          >
+            Complete
+          </button>
+        </div>
+      </div>
   <div class="container w-full mx-auto">
     <section class="flex flex-col lg:flex-row mt-5">
       <div class="basis-2/6 bg-gray-100 rounded-lg p-10 lg:mr-8">
@@ -363,75 +686,79 @@ fetchPantryItems();
   </button>
 </div>
 
-        <div
-          class="recipe-card mt-3 p-4 bg-white border border-gray-300 rounded-lg text-center"
-        >
-          <p class="text-lg font-semibold mb-4">
-            If you finished this recipe, you can click the button below to get
-            your CO2 reduction calculated into account.
-          </p>
-          <button
-            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-          >
-            Complete
-          </button>
-        </div>
-      </div>
-      <div class="basis-4/6 bg-gray-100 rounded-lg p-10 lg:mr-8">
-        <h2 class="text-4xl mt-3 mb-3">Instructions</h2>
+        <h2 class="text-2xl lg:text-4xl mt-3 mb-1">Instructions</h2>
+        <p class="mb-1 text-gray-500 text-sm">
+          (Don't forget to input the amount of ingredients used after every step
+          so we can calculate how much CO2 and money you have saved.)
+        </p>
         {#each getSteps(recipe.instructions) as step, index (step)}
-          <div class="step">
-            <h3 class="text-xl">Step {index + 1}</h3>
-            <p>{step}.</p>
-            {#if containsTime(step)}
-              <div class="flex items-center gap-2 mt-2">
-                <span class="text-lg">⏰</span>
-                <input
-                  type="number"
-                  placeholder="Min"
-                  min="0"
-                  value={countdowns[index]?.minutes || ""}
-                  on:input={(e) =>
-                    updateCountdownMinutes(index, e.target.value)}
-                  class="border border-gray-300 rounded px-2 w-20"
-                />
-                <span>:</span>
-                <input
-                  type="number"
-                  placeholder="Sec"
-                  min="0"
-                  max="59"
-                  value={countdowns[index]?.seconds || ""}
-                  on:input={(e) =>
-                    updateCountdownSeconds(index, e.target.value)}
-                  class="border border-gray-300 rounded px-2 w-20"
-                />
-                <button
-                  on:click={() =>
-                    startCountdown(
-                      index,
-                      Number(countdowns[index]?.minutes || 0) * 60 +
-                        Number(countdowns[index]?.seconds || 0),
-                    )}
-                  class="bg-blue-500 text-white px-3 py-1 rounded"
-                >
-                  Start
-                </button>
-                {#if countdowns[index] && countdowns[index].time !== null}
-                  <p class="text-gray-700">
-                    Time left: {Math.floor(countdowns[index].time / 60)}m
-                    {countdowns[index].time % 60}s
-                  </p>
-                {:else if countdowns[index]?.minutes || countdowns[index]?.seconds}
-                  <p class="text-gray-700">
-                    Time left: {countdowns[index].minutes || 0}m
-                    {countdowns[index]?.seconds || 0}s
-                  </p>
-                {:else}
-                  <p class="text-gray-700">Time left: 0m 0s</p>
-                {/if}
-              </div>
-            {/if}
+          <div class="step flex flex-col lg:flex-row items-start gap-4 mb-4">
+            <div class="flex items-left">
+              <h3 class="text-lg lg:text-xl">Step {index + 1}</h3>
+            </div>
+            <div class="flex-2 text-left">
+              <p class="mt-2">{step}.</p>
+
+              {#if containsTime(step)}
+                <div class="flex-3 items-left gap-2 mt-2 justify-end">
+                  <span class="text-lg">⏰</span>
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    min="0"
+                    value={countdowns[index]?.minutes || ""}
+                    on:input={(e) =>
+                      updateCountdownMinutes(index, e.target.value)}
+                    class="border border-gray-300 rounded px-2 w-20"
+                  />
+                  <span>:</span>
+                  <input
+                    type="number"
+                    placeholder="Sec"
+                    min="0"
+                    max="59"
+                    value={countdowns[index]?.seconds || ""}
+                    on:input={(e) =>
+                      updateCountdownSeconds(index, e.target.value)}
+                    class="border border-gray-300 rounded px-2 w-20"
+                  />
+                  <button
+                    on:click={() =>
+                      startCountdown(
+                        index,
+                        Number(countdowns[index]?.minutes || 0) * 60 +
+                          Number(countdowns[index]?.seconds || 0),
+                      )}
+                    class="bg-blue-500 text-white px-3 py-1 rounded"
+                  >
+                    Start
+                  </button>
+                  {#if countdowns[index] && countdowns[index].time !== null}
+                    <p class="text-gray-700">
+                      Time left: {Math.floor(countdowns[index].time / 60)}m
+                      {countdowns[index].time % 60}s
+                    </p>
+                  {:else if countdowns[index]?.minutes || countdowns[index]?.seconds}
+                    <p class="text-gray-700">
+                      Time left: {countdowns[index].minutes || 0}m
+                      {countdowns[index]?.seconds || 0}s
+                    </p>
+                  {:else}
+                    <p class="text-gray-700">Time left: 0m 0s</p>
+                  {/if}
+                </div>
+              {/if}
+            </div>
+            <div class="flex-1">
+              {#if selectedIngredients[index]}
+                <p class="mt-2 text-green-600">
+                  Used: {selectedIngredients[index].name}, {selectedIngredients[
+                    index
+                  ].amount}
+                  {selectedIngredients[index].measurement}
+                </p>
+              {/if}
+            </div>
           </div>
         {/each}
       </div>
@@ -467,6 +794,44 @@ fetchPantryItems();
   <p>Loading...</p>
 {/if}
 
+  <!-- Modal for Ingredient Selection -->
+  {#if $showIngredientModal}
+    <div
+      class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
+    >
+      <div class="bg-white p-6 rounded-lg shadow-lg w-11/12 md:max-w-md">
+        <h2 class="text-2xl font-bold text-green-600 mb-4">
+          Select an Ingredient and an Amount Used
+        </h2>
+        <div class="mb-4">
+          <select
+            bind:value={$selectedIngredient}
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+          >
+            <option value="">Select an ingredient</option>
+            {#each $filteredPantry as ingredient}
+              <option value={ingredient.name}>{ingredient.name}</option>
+            {/each}
+          </select>
+        </div>
+        <div class="mb-4">
+          <input
+            type="number"
+            bind:value={$amountUsed}
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+          />Amount
+        </div>
+        <div class="mb-4">
+          <select
+            bind:value={$measurementUnit}
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+          >
+            {#each measurementUnits as unit}
+              <option value={unit}>{unit}</option>
+            {/each}
+          </select>Measurement
+        </div>
+        <div class="flex justify-end space-x-4">
 {#if showShoppingList}
   <div
     class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
@@ -505,7 +870,71 @@ fetchPantryItems();
         </div>
       {/if}
     </div>
-  </div>
+  {/if}
+
+  <!-- Modal for Editing Ingredient Amount -->
+  {#if $showEditModal}
+    <div
+      class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
+    >
+      <div class="bg-white p-6 rounded-lg shadow-lg w-11/12 md:max-w-md">
+        <h2 class="text-2xl font-bold text-green-600 mb-4">
+          Edit {$selectedIngredient}
+        </h2>
+        <div class="mb-4">
+          <input
+            type="number"
+            bind:value={$editAmount}
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+          />Amount
+        </div>
+        <div class="mb-4">
+          <select
+            bind:value={$editMeasurement}
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+          >
+            {#each measurementUnits as unit}
+              <option value={unit}>{unit}</option>
+            {/each}
+          </select>Measurement
+        </div>
+        <div class="flex justify-end space-x-4">
+          <button
+            on:click={() => showEditModal.set(false)}
+            class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+          >
+            Cancel
+          </button>
+          <button
+            on:click={saveEditedAmount}
+            class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Warning Popup -->
+  {#if $warningMessage}
+    <div
+      class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
+    >
+      <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
+        <h2 class="text-2xl font-bold text-red-600 mb-4">Warning</h2>
+        <p class="text-gray-700 mb-4">{$warningMessage}</p>
+        <div class="flex justify-end">
+          <button
+            on:click={() => warningMessage.set("")}
+            class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  {/if}
 {/if}
 
 

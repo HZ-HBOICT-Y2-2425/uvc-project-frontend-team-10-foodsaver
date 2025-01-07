@@ -1,54 +1,60 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
-    import { derived } from "svelte/store";
-    import { onMount } from "svelte";
+    import { onDestroy, onMount } from "svelte";
     import { authStore } from "../lib/stores/authStore";
-    import { pantryStore } from "../lib/stores/pantryStore";
-    import { onDestroy } from "svelte";
+    import { pantryStore, categoriesStore } from "../lib/stores/pantryStore";
+    import { derived, writable } from "svelte/store";
 
-    // Create a local variable to store the pantry data
     let pantry = [];
+    let categories = [];
 
     // Subscribe to the store to get pantry data
-    const unsubscribe = pantryStore.subscribe((data) => {
+    const unsubscribe_pantry = pantryStore.subscribe((data) => {
         pantry = data;
+    });
+
+    const unsubscribe_categories = categoriesStore.subscribe((data) => {
+        categories = data;
     });
 
     onDestroy(() => {
         // Unsubscribe to avoid memory leaks
-        unsubscribe();
+        unsubscribe_pantry();
+        unsubscribe_categories();
     });
 
     let searchQuery = "";
     let searchActive = false;
     let selectedIngredients: string[] = [];
-    let recipes: any[] = []; // Will store the fetched recipes
-    let seasonalRecipes: any[] = []; // Will store the fetched seasonal recipes
+    let recipes: any[] = [];
+    let seasonalRecipes: any[] = [];
     let username = "";
+    let user_id = 1;
 
     const visibleRecipeCount = 6;
-
     let currentRecipeIndex1 = 0;
     let currentRecipeIndex2 = 0;
 
+
     $: username = $authStore.user?.username || 'Guest';
 
-    // Trigger search function
-    const searchRecipes = () => {
+
+    const searchRecipes = async () => {
         if (!selectedIngredients.length) {
-            alert("Please select at least one ingredient to search for recipes.");
+            alert(
+                "Please select at least one ingredient to search for recipes.",
+            );
         } else {
             const ingredientsParam = selectedIngredients.join(",");
             goto(`/search?ingredients=${ingredientsParam}`);
         }
     };
-
+  
     // Fallback for broken image
     const handleImageError = (event: Event) => {
         const img = event.target as HTMLImageElement;
         img.src = "/images/placeholder.png";
     };
-
     // Recipe navigation functions for first section
     const previousRecipes1 = () => {
         if (currentRecipeIndex1 > 0) {
@@ -77,19 +83,32 @@
 
     // Sort the pantry items by expiration date
     const sortedPantry = derived(pantryStore, ($pantry) => {
-        // Check if $pantry is valid and an array, if not return an empty array
-        if (!$pantry || !Array.isArray($pantry)) {
-            return []; // Return an empty array if pantry is not yet initialized
+        if (!$pantry || !$pantry.pantryItems) {
+            return [];
         }
 
-        // Sort the pantry by expiration date
-        return $pantry
+        // Extract and sort pantry items by expiration date
+        const sortedPantryItems = $pantry.pantryItems
             .slice() // Creates a shallow copy of the array
             .sort(
                 (a, b) =>
                     new Date(a.expiration_date).getTime() -
                     new Date(b.expiration_date).getTime(),
             );
+
+        return sortedPantryItems;
+    });
+
+    // Filter only the pantry items without categories
+    const filteredPantry = derived(pantryStore, ($pantry) => {
+        if (!$pantry || !$pantry.pantryItems) {
+            return [];
+        }
+
+        // Extract pantry items without categories
+        const filteredPantryItems = $pantry.pantryItems;
+
+        return filteredPantryItems;
     });
 
     // Reactive variables
@@ -124,7 +143,10 @@
 
     // Function to go to the next ingredients
     const nextIngredients = () => {
-        if (currentIngredientIndex + switchingIngredients < 20) {
+        if (
+            currentIngredientIndex + switchingIngredients <
+            nearestExpiringIngredients.length
+        ) {
             currentIngredientIndex += switchingIngredients; // Move backwards in blocks of switchingIngredients (1)
         }
     };
@@ -300,7 +322,7 @@
             <div class="relative">
                 <input
                     type="text"
-                    bind:value={searchQuery}
+                    bind:value={selectedIngredients}
                     placeholder="Select ingredients from your pantry"
                     on:focus={() => (searchActive = true)}
                     class="w-full p-4 pr-12 rounded-md shadow-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -332,7 +354,7 @@
                     >
                         <h3 class="font-bold mb-2">Select Ingredients</h3>
                         <ul>
-                            {#each pantry as item, index (item.id ? item.id : index)}
+                            {#each $filteredPantry as item, index (item.id ? item.id : index)}
                                 <li class="flex items-center mb-2">
                                     <label class="flex items-center space-x-2">
                                         <input
@@ -405,7 +427,9 @@
                                 >Expires: {item.expiration_date}</span
                             >
                             {#if (new Date(item.expiration_date).getTime() - new Date().getTime()) / (1000 * 60 * 60) <= 24}
-                                <span class="text-red-500 text-xs">Expiring today!</span>
+                                <span class="text-red-500 text-xs"
+                                    >Expiring today!</span
+                                >
                             {/if}
                         </div>
                     {/if}

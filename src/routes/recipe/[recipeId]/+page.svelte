@@ -135,106 +135,101 @@
     return filteredPantryItems;
   });
 
-  const updateAllIngredients = async (): Promise<void> => {
-    let invalidIngredients = []; // Array to collect invalid ingredient names
-    try {
-      const $filteredPantry = get(filteredPantry); // Get the current value of filteredPantry
+  const updateIngredientsAndIncrementRecipeCount = async (): Promise<void> => {
+  let invalidIngredients = []; // Array to collect invalid ingredient names
+  const token = $authStore.token;
 
-      for (const [ingredientName, details] of Object.entries(
-        selectedIngredients,
-      )) {
-        const ingredient = $filteredPantry.find(
-          (item) => item.name === ingredientName,
-        );
-        const currentQuantity = ingredient?.quantity || 0;
-        const currentMeasurement = ingredient?.measurement || "grams";
-        let newQuantity = currentQuantity;
+  try {
+    const $filteredPantry = get(filteredPantry); // Get the current value of filteredPantry
 
-        // Convert the amount used to the same unit as the current quantity
-        if (currentMeasurement === "grams") {
-          if (
-            [
-              "grams",
-              "kilograms",
-              "tablespoons",
-              "teaspoons",
-              "cups",
-              "pounds",
-            ].includes(details.measurement)
-          ) {
-            newQuantity -= convertToGrams(details.amount, details.measurement);
-          } else {
-            invalidIngredients.push(ingredientName);
-            continue;
-          }
-        } else if (currentMeasurement === "milliliters") {
-          if (
-            [
-              "milliliters",
-              "liters",
-              "tablespoons",
-              "teaspoons",
-              "cups",
-              "ounces",
-            ].includes(details.measurement)
-          ) {
-            newQuantity -= convertToMilliliters(
-              details.amount,
-              details.measurement,
-            );
-          } else {
-            invalidIngredients.push(ingredientName);
-            continue;
-          }
+    // Loop through selected ingredients and update quantities
+    for (const [ingredientName, details] of Object.entries(selectedIngredients)) {
+      const ingredient = $filteredPantry.find((item) => item.name === ingredientName);
+      const currentQuantity = ingredient?.quantity || 0;
+      const currentMeasurement = ingredient?.measurement || "grams";
+      let newQuantity = currentQuantity;
+
+      // Convert the amount used to the same unit as the current quantity
+      if (currentMeasurement === "grams") {
+        if (["grams", "kilograms", "tablespoons", "teaspoons", "cups", "pounds"].includes(details.measurement)) {
+          newQuantity -= convertToGrams(details.amount, details.measurement);
         } else {
-          newQuantity -= details.amount;
+          invalidIngredients.push(ingredientName);
+          continue;
         }
-
-        if (newQuantity <= 0) {
-          await removeIngredient(ingredientName);
+      } else if (currentMeasurement === "milliliters") {
+        if (["milliliters", "liters", "tablespoons", "teaspoons", "cups", "ounces"].includes(details.measurement)) {
+          newQuantity -= convertToMilliliters(details.amount, details.measurement);
         } else {
-          const updateItem = {
-            name: ingredientName,
-            quantity: newQuantity,
-            measurement: currentMeasurement,
-            user_id: user_id, // Automatically associate the logged-in user
-          };
-
-          const response = await fetch(
-            `http://localhost:4010/pantry/update/${encodeURIComponent(ingredientName)}?user_id=${user_id}`,
-            {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(updateItem),
-            },
-          );
-
-          const data = await response.json();
-
-          if (response.ok) {
-            console.log("Ingredient updated successfully:", data);
-          } else {
-            warningMessage.set(
-              `Error updating ingredient: ${ingredientName}. ${data.error}`,
-            );
-          }
+          invalidIngredients.push(ingredientName);
+          continue;
         }
-      }
-
-      if (invalidIngredients.length > 0) {
-        warningMessage.set(
-          `Select a valid measurement for the following ingredients: ${invalidIngredients.join(", ")}`,
-        );
       } else {
-        fetchPantryItems(); // Reload pantry items
-        selectedIngredients = {}; // Reset selected ingredients
+        newQuantity -= details.amount;
       }
-    } catch (error) {
-      warningMessage.set(`Error updating ingredients: ${error.message}`);
+
+      // Remove or update the ingredient based on the new quantity
+      if (newQuantity <= 0) {
+        await removeIngredient(ingredientName);
+      } else {
+        const updateItem = {
+          name: ingredientName,
+          quantity: newQuantity,
+          measurement: currentMeasurement,
+          user_id: user_id, // Automatically associate the logged-in user
+        };
+
+        const response = await fetch(
+          `http://localhost:4010/pantry/update/${encodeURIComponent(ingredientName)}?user_id=${user_id}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(updateItem),
+          },
+        );
+
+        const data = await response.json();
+
+        if (response.ok) {
+          console.log("Ingredient updated successfully:", data);
+        } else {
+          warningMessage.set(
+            `Error updating ingredient: ${ingredientName}. ${data.error}`,
+          );
+        }
+      }
     }
-  };
+
+    // Increment the recipe count
+    const response = await fetch('http://localhost:4001/api/users/increment-recipe-count', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to increment recipe count.');
+    }
+
+    const data = await response.json();
+    authStore.update((state) => ({
+      ...state,
+      recipeCount: data.recipe_count,
+    }));
+
+    console.log("Recipe count incremented successfully.");
+  } catch (error) {
+    console.error('Error updating ingredients or incrementing recipe count:', error);
+  }
+
+  if (invalidIngredients.length > 0) {
+    console.warn("Invalid ingredients:", invalidIngredients.join(", "));
+  }
+};
   const removeIngredient = async (name): Promise<void> => {
     try {
       const response = await fetch(
@@ -521,7 +516,6 @@
   // Example call for pantry items (replace with actual function logic)
   fetchPantryItems();
 </script>
-
 {#if recipe}
   <div class="w-full mx-auto px-4">
     <section class="flex flex-col lg:flex-row mt-5">
@@ -599,7 +593,7 @@
           </p>
           <button
             class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full"
-            on:click={updateAllIngredients}
+            on:click={updateIngredientsAndIncrementRecipeCount}
           >
             Complete
           </button>

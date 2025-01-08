@@ -43,8 +43,9 @@
 {#if !isLoginOrRegister}
 <nav class="w-full bg-white shadow-md p-4 px-10 flex justify-between items-center">
   <div class="logo flex items-center space-x-2">
-    <h1 class="text-2xl font-bold text-green-600 italic">FoodSaver</h1>
+    <img src="static/Foodsaver (1).png" alt="FoodSaver Logo" class="w-8 h-8">
   </div>
+  
   <div class="nav-links hidden md:flex space-x-6">
     <a href="/" class="text-gray-800 hover:text-green-500 text-lg">Home</a>
     <a href="/tips" class="text-gray-800 hover:text-green-500 text-lg">Tips & Tricks</a>

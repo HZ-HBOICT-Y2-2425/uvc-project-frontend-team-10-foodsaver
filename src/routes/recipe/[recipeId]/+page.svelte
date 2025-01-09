@@ -41,6 +41,7 @@
   let showEditModal = writable<boolean>(false);
   let missingIngredients = [];
   let showShoppingList = false;
+  let isButtonDisabled = false;
 
   const measurementUnits = [
     "grams",
@@ -136,100 +137,107 @@
   });
 
   const updateIngredientsAndIncrementRecipeCount = async (): Promise<void> => {
-  let invalidIngredients = []; // Array to collect invalid ingredient names
-  const token = $authStore.token;
+    // Disable the button and start the timer
+    isButtonDisabled = true;
+    setTimeout(() => {
+      isButtonDisabled = false;
+    }, 1800000);;
 
-  try {
-    const $filteredPantry = get(filteredPantry); // Get the current value of filteredPantry
+    let invalidIngredients = []; // Array to collect invalid ingredient names
+    const token = $authStore.token;
 
-    // Loop through selected ingredients and update quantities
-    for (const [ingredientName, details] of Object.entries(selectedIngredients)) {
-      const ingredient = $filteredPantry.find((item) => item.name === ingredientName);
-      const currentQuantity = ingredient?.quantity || 0;
-      const currentMeasurement = ingredient?.measurement || "grams";
-      let newQuantity = currentQuantity;
+    try {
+      const $filteredPantry = get(filteredPantry); // Get the current value of filteredPantry
 
-      // Convert the amount used to the same unit as the current quantity
-      if (currentMeasurement === "grams") {
-        if (["grams", "kilograms", "tablespoons", "teaspoons", "cups", "pounds"].includes(details.measurement)) {
-          newQuantity -= convertToGrams(details.amount, details.measurement);
+      // Loop through selected ingredients and update quantities
+      for (const [ingredientName, details] of Object.entries(selectedIngredients)) {
+        const ingredient = $filteredPantry.find((item) => item.name === ingredientName);
+        const currentQuantity = ingredient?.quantity || 0;
+        const currentMeasurement = ingredient?.measurement || "grams";
+        let newQuantity = currentQuantity;
+
+        // Convert the amount used to the same unit as the current quantity
+        if (currentMeasurement === "grams") {
+          if (["grams", "kilograms", "tablespoons", "teaspoons", "cups", "pounds"].includes(details.measurement)) {
+            newQuantity -= convertToGrams(details.amount, details.measurement);
+          } else {
+            invalidIngredients.push(ingredientName);
+            continue;
+          }
+        } else if (currentMeasurement === "milliliters") {
+          if (["milliliters", "liters", "tablespoons", "teaspoons", "cups", "ounces"].includes(details.measurement)) {
+            newQuantity -= convertToMilliliters(details.amount, details.measurement);
+          } else {
+            invalidIngredients.push(ingredientName);
+            continue;
+          }
         } else {
-          invalidIngredients.push(ingredientName);
-          continue;
+          newQuantity -= details.amount;
         }
-      } else if (currentMeasurement === "milliliters") {
-        if (["milliliters", "liters", "tablespoons", "teaspoons", "cups", "ounces"].includes(details.measurement)) {
-          newQuantity -= convertToMilliliters(details.amount, details.measurement);
+
+        // Remove or update the ingredient based on the new quantity
+        if (newQuantity <= 0) {
+          await removeIngredient(ingredientName);
         } else {
-          invalidIngredients.push(ingredientName);
-          continue;
-        }
-      } else {
-        newQuantity -= details.amount;
-      }
+          const updateItem = {
+            name: ingredientName,
+            quantity: newQuantity,
+            measurement: currentMeasurement,
+            user_id: user_id, // Automatically associate the logged-in user
+          };
 
-      // Remove or update the ingredient based on the new quantity
-      if (newQuantity <= 0) {
-        await removeIngredient(ingredientName);
-      } else {
-        const updateItem = {
-          name: ingredientName,
-          quantity: newQuantity,
-          measurement: currentMeasurement,
-          user_id: user_id, // Automatically associate the logged-in user
-        };
-
-        const response = await fetch(
-          `http://localhost:4010/pantry/update/${encodeURIComponent(ingredientName)}?user_id=${user_id}`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
+          const response = await fetch(
+            `http://localhost:4010/pantry/update/${encodeURIComponent(ingredientName)}?user_id=${user_id}`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(updateItem),
             },
-            body: JSON.stringify(updateItem),
-          },
-        );
-
-        const data = await response.json();
-
-        if (response.ok) {
-          console.log("Ingredient updated successfully:", data);
-        } else {
-          warningMessage.set(
-            `Error updating ingredient: ${ingredientName}. ${data.error}`,
           );
+
+          const data = await response.json();
+
+          if (response.ok) {
+            console.log("Ingredient updated successfully:", data);
+          } else {
+            warningMessage.set(
+              `Error updating ingredient: ${ingredientName}. ${data.error}`,
+            );
+          }
         }
       }
+
+      // Increment the recipe count
+      const response = await fetch('http://localhost:4000/api/users/increment-recipe-count', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to increment recipe count.');
+      }
+
+      const data = await response.json();
+      authStore.update((state) => ({
+        ...state,
+        recipeCount: data.recipe_count,
+      }));
+
+      console.log("Recipe count incremented successfully.");
+    } catch (error) {
+      console.error('Error updating ingredients or incrementing recipe count:', error);
     }
 
-    // Increment the recipe count
-    const response = await fetch('http://localhost:4000/api/users/increment-recipe-count', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to increment recipe count.');
+    if (invalidIngredients.length > 0) {
+      console.warn("Invalid ingredients:", invalidIngredients.join(", "));
     }
+  };
 
-    const data = await response.json();
-    authStore.update((state) => ({
-      ...state,
-      recipeCount: data.recipe_count,
-    }));
-
-    console.log("Recipe count incremented successfully.");
-  } catch (error) {
-    console.error('Error updating ingredients or incrementing recipe count:', error);
-  }
-
-  if (invalidIngredients.length > 0) {
-    console.warn("Invalid ingredients:", invalidIngredients.join(", "));
-  }
-};
   const removeIngredient = async (name): Promise<void> => {
     try {
       const response = await fetch(
@@ -592,11 +600,13 @@
             reduction.
           </p>
           <button
-            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full"
-            on:click={updateIngredientsAndIncrementRecipeCount}
-          >
-            Complete
-          </button>
+          class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full {isButtonDisabled ? 'disabled' : ''}"
+          on:click={updateIngredientsAndIncrementRecipeCount}
+          disabled={isButtonDisabled}
+        >
+          Complete
+        </button>
+        
         </div>
       </div>
 
@@ -886,4 +896,10 @@
   .step {
     margin-bottom: 1.5rem;
   }
+
+  .disabled {
+    background-color: gray !important;
+    cursor: not-allowed;
+  }
+
 </style>

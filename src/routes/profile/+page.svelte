@@ -43,7 +43,7 @@
     async function updateUsername() {
       console.log('Sending token:', token);
   
-      const response = await fetch('http://localhost:4001/api/users/update-username', {
+      const response = await fetch('http://localhost:4000/api/users/update-username', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -75,7 +75,7 @@
     async function changePassword() {
       console.log('Changing password with token:', token);
   
-      const response = await fetch('http://localhost:4001/api/users/change-password', {
+      const response = await fetch('http://localhost:4000/api/users/change-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

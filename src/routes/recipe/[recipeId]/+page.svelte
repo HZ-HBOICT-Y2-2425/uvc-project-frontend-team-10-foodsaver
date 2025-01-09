@@ -549,6 +549,14 @@
       alert('Sorry, your browser does not support speech synthesis!');
     }
   }
+
+  const openAddManually = () => {
+    category.set("");
+    ingredient.set("");
+    weight.set(0);
+    expirationDate.set("");
+    addManually.set(true);
+  };
 </script>
 <button on:click={readAloud}>🔊 Read Aloud</button>
 {#if recipe}

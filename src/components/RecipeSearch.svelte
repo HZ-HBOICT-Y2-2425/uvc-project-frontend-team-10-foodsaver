@@ -81,8 +81,7 @@
     }
 
     // Check if the ingredient already exists in the pantry
-    if (
-      pantry.some(
+    if (Array.isArray(pantry) && pantry.some(
         (item) => item.name.toLowerCase() === newItem.name.toLowerCase(),
       )
     ) {
@@ -437,6 +436,15 @@
     function goToRecipeDetails(recipeId: number) {
         goto(`/recipe/${recipeId}`);
     }
+
+    // Function to open the "Add Manually" form
+    const openAddManually = () => {
+        category.set("");
+        ingredient.set("");
+        weight.set(0);
+        expirationDate.set("");
+        addManually.set(true);
+    };
 </script>
 
 <div class="container mx-auto mt-8 px-4 lg:px-6 text-center">
@@ -451,7 +459,7 @@
     <div class="ml-4 mr-4">
         <button
             class="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring focus:ring-green-300"
-            on:click={() => addManually.set(true)}
+            on:click={openAddManually}
         >
             Add Ingredients
         </button>

@@ -663,6 +663,69 @@
         {:else}
             <p class="text-gray-600">No seasonal recipes available.</p>
         {/if}
+
+      </h2>
+      {#if $addManually}
+        <div class="mb-4">
+          <select
+            bind:value={$category}
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+          >
+            <option value="">Select a category</option>
+            {#each categories as category}
+              <option value={category}>{category}</option>
+            {/each}
+          </select>Category
+        </div>
+        <div class="mb-4">
+          <input
+            type="string"
+            bind:value={$selectedIngredient}
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+          />Name
+        </div>
+      {/if}
+      <div class="mb-4">
+        <input
+          type="number"
+          bind:value={$weight}
+          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+        />Select the amount
+      </div>
+      <div class="mb-4">
+        <select
+          bind:value={$selectedMeasurement}
+          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+        >
+          {#each measurementUnits as unit}
+            <option value={unit}>{unit}</option>
+          {/each}
+        </select>Measurement
+      </div>
+      <div class="mb-4">
+        <input
+          type="date"
+          bind:value={$expirationDate}
+          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+        />Select the expiration date
+      </div>
+      <div class="flex justify-end space-x-4">
+        <button
+          on:click={() => {
+            addManually.set(false);
+          }}
+          class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+        >
+          Cancel
+        </button>
+        <button
+          on:click={saveIngredientDetails}
+          class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+        >
+          Save
+        </button>
+      </div>
+
     </div>
 </div>
 

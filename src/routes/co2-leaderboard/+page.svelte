@@ -3,18 +3,18 @@
 
   let leaderboard = [];
 
-  // Carga los datos del backend al montar el componente
+  // Load backend data when mounting component
   onMount(async () => {
     try {
-      const response = await fetch('http://localhost:4000/api/users/leaderboard');
+      const response = await fetch('http://localhost:4000/api/users/co2-leaderboard');
       if (response.ok) {
         const data = await response.json();
-        // Mapea los datos para que encajen con la estructura del leaderboard
+        // Map the data to fit the leaderboard structure
         leaderboard = data.data.map((user, index) => ({
           rank: index + 1,
           username: user.username,
-          points: user.email, // Cambiamos points por email, según lo solicitado
-          avatar: `https://cdn-icons-png.flaticon.com/512/2945/294551${index % 6 + 1}.png`, // Avatar aleatorio
+          points: user.email, // We change points by email, as requested
+          avatar: `https://cdn-icons-png.flaticon.com/512/2945/294551${index % 6 + 1}.png`, // Random avatar
           medal:
             index === 0
               ? 'https://cdn.prod.website-files.com/62e3f65d6c8bce4b79deaba9/62ebf1e68130060887a7d337_vecteezy_flat-vector-illustration-of-gold-silver-and-bronze-medal_7892417-modified%20(1)-p-500.png'
@@ -36,11 +36,11 @@
 <div class="leaderboard-container">
   <h1 class="leaderboard-title">Leaderboard</h1>
   <div class="podium">
-    <!-- Segundo lugar: ahora es el primero en aparecer -->
+    <!-- Second place: now the first to appear -->
     {#if leaderboard.length > 1}
       <div class="podium-item">
         <img class="medal" src={leaderboard[1].medal} alt={`Medal for rank ${leaderboard[1].rank}`} />
-        <span class="points">{leaderboard[1].points}</span>
+        <span class="points">{leaderboard[1].points} CO2 liters</span>
         <div class="avatar-container">
           <img src={leaderboard[1].avatar} alt={`${leaderboard[1].username}'s avatar`} />
           <p>{leaderboard[1].username}</p>
@@ -49,11 +49,11 @@
       </div>
     {/if}
   
-    <!-- Primer lugar: ahora es el segundo en aparecer -->
+    <!-- First place: now the second to appear -->
     {#if leaderboard.length > 0}
       <div class="podium-item center-podium">
         <img class="medal" src={leaderboard[0].medal} alt={`Medal for rank ${leaderboard[0].rank}`} />
-        <span class="points">{leaderboard[0].points}</span>
+        <span class="points">{leaderboard[0].points} CO2 liters</span>
         <div class="avatar-container">
           <img src={leaderboard[0].avatar} alt={`${leaderboard[0].username}'s avatar`} />
           <p>{leaderboard[0].username}</p>
@@ -62,11 +62,11 @@
       </div>
     {/if}
   
-    <!-- Tercer lugar: no cambia -->
+    <!-- Third place: does not change -->
     {#if leaderboard.length > 2}
       <div class="podium-item">
         <img class="medal" src={leaderboard[2].medal} alt={`Medal for rank ${leaderboard[2].rank}`} />
-        <span class="points">{leaderboard[2].points}</span>
+        <span class="points">{leaderboard[2].points} CO2 liters</span>
         <div class="avatar-container">
           <img src={leaderboard[2].avatar} alt={`${leaderboard[2].username}'s avatar`} />
           <p>{leaderboard[2].username}</p>
@@ -82,14 +82,14 @@
         <td>{rank}</td>
         <td><img src={avatar} alt="avatar" /></td>
         <td>{username}</td>
-        <td class="points">{points}</td>
+        <td class="points">{points} CO2 liters</td>
       </tr>
     {/each}
   </table>
 </div>
 
 <style>
-  /* (Mantiene el estilo ya definido, no se hicieron cambios aquí) */
+  /* (Maintains the style already defined, no changes were made here) */
   .leaderboard-container {
       max-width: 800px;
       margin: 0 auto;

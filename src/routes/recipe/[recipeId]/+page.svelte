@@ -1,146 +1,18 @@
 <script lang="ts">
-
   import { authStore } from "./../../../lib/stores/authStore.js";
   import { goto } from "$app/navigation";
-  import { pantryStore } from "./../../../lib/stores/pantryStore"; // Import pantry store
-  import { searchedIngredients } from "./../../../lib/stores/ingredientStore.js";
-  import { writable } from "svelte/store";
+  import {
+    pantryStore,
+    categoriesStore,
+  } from "./../../../lib/stores/pantryStore"; // Import pantry store
+  import { writable, derived, get } from "svelte/store";
   import { onMount, onDestroy } from "svelte";
+  import {
+    convertToGrams,
+    convertToMilliliters,
+  } from "../../../utils/conversion.js";
 
-let pantry = [];
-let missingIngredients = [];
-let showShoppingList = false;
-let user_id = 1;
-
-authStore.subscribe((state) => {
-  console.log("Auth store state in home page: ", state);
-  user_id = state.user?.id || 1;
-  console.log("user id is: ", user_id);
-});
-
-async function fetchPantryItems() {
-  try {
-    const response = await fetch(`http://localhost:4010/pantry?user_id=${user_id}`);
-    if (response.ok) {
-      pantry = await response.json();
-      console.log("Pantry items fetched:", pantry);
-    } else {
-      console.error("Failed to fetch pantry items");
-    }
-  } catch (error) {
-    console.error("Error fetching pantry items:", error);
-  }
-}
-
-function toggleShoppingList() {
-  if (!showShoppingList) {
-    findMissingIngredients();
-  }
-  showShoppingList = !showShoppingList;
-}
-
-function closeShoppingList() {
-  showShoppingList = false;
-}
-
-function findMissingIngredients() {
-  if (!recipe?.extendedIngredients || !Array.isArray(pantry)) return;
-
-  missingIngredients = [];
-  const recipeIngredients = recipe.extendedIngredients.map((ingredient) => ({
-    name: ingredient.name || ingredient.original,
-    requiredQuantity: ingredient.amount || 0,
-  }));
-
-  for (const recipeIngredient of recipeIngredients) {
-    const pantryItem = pantry.find(
-      (item) => item.name.toLowerCase() === recipeIngredient.name.toLowerCase()
-    );
-
-    if (!pantryItem || pantryItem.quantity < recipeIngredient.requiredQuantity) {
-      const missingQuantity =
-        recipeIngredient.requiredQuantity - (pantryItem?.quantity || 0);
-      missingIngredients.push({
-        name: recipeIngredient.name,
-        requiredQuantity: missingQuantity,
-      });
-    }
-  }
-}
-
-async function saveShoppingList() {
-  console.log("Full Recipe Data:", recipe);
-
-  if (!recipe || !recipe.title || !recipe.image) {
-    console.error("Invalid recipe data:", recipe);
-    alert("Recipe data is missing or incomplete.");
-    return;
-  }
-
-  console.log("Saving shopping list with data:", {
-    userId: user_id,
-    shoppingListName: recipe.title,  // Recipe name as shopping list name
-    ingredients: missingIngredients, // Missing ingredients
-    recipeTitle: recipe.title,       // Recipe title
-    recipeImage: recipe.image,       // Recipe image URL
-  });
-
-  if (missingIngredients.length === 0) {
-    alert("No missing ingredients to save!");
-    return;
-  }
-
-  try {
-    const shoppingListResponse = await fetch('http://localhost:4053/shopping-lists', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: user_id,
-        shoppingListName: recipe.title,
-        ingredients: missingIngredients,
-        recipeTitle: recipe.title,
-        recipeImage: recipe.image,
-      }),
-    });
-
-    if (shoppingListResponse.ok) {
-      alert("Shopping list saved successfully!");
-    } else {
-      const error = await shoppingListResponse.json();
-      console.error("Failed to save shopping list:", error);
-      alert("Failed to save shopping list.");
-    }
-  } catch (error) {
-    console.error("Error saving shopping list:", error);
-    alert("Error saving shopping list.");
-  }
-}
-
-
-
-
-
-
-async function fetchShoppingLists() {
-  try {
-    const response = await fetch(`http://localhost:4053/shopping-lists?userId=${user_id}`);
-    if (response.ok) {
-      const shoppingLists = await response.json();
-      console.log('Fetched shopping lists:', shoppingLists);
-      savedShoppingLists = shoppingLists;
-    } else {
-      console.error('Failed to fetch shopping lists. Status:', response.status);
-    }
-  } catch (error) {
-    console.error('Error fetching shopping lists:', error.message);
-  }
-}
-
-
-// Example call for pantry items (replace with actual function logic)
-fetchPantryItems();
-
-
+  let user_id = 1;
   authStore.subscribe((state) => {
     user_id = state.user?.id || 1;
   });
@@ -153,17 +25,33 @@ fetchPantryItems();
   let countdowns: Countdown[] = [];
   let showModal = false;
   let pantry = [];
+  let categories = [];
   let showIngredientModal = writable<boolean>(false);
   let currentStepIndex = writable<number | null>(null);
-  let name = writable<string>("");
   let amountUsed = writable<number>(0);
   let measurementUnit = writable<string>("grams");
   let selectedIngredient = writable<string>("");
-  let selectedIngredientOriginal = writable<string>("");
-  let selectedMeasurement = writable<string>("");
-  let ingredient = writable<string>("");
-  let selectedIngredients: { [key: number]: { name: string, amount: number, measurement: string } } = {}; // Initialize selectedIngredients
-  let amount = writable<number>(0);
+  let selectedIngredients: {
+    [key: string]: { amount: number; measurement: string };
+  } = {}; // Initialize selectedIngredients
+  let warningMessage = writable<string>("");
+  let editIngredient = writable<string>("");
+  let editAmount = writable<number>(0);
+  let editMeasurement = writable<string>("grams");
+  let showEditModal = writable<boolean>(false);
+  let missingIngredients = [];
+  let showShoppingList = false;
+
+  const measurementUnits = [
+    "grams",
+    "milliliters",
+    "pieces",
+    "tablespoons",
+    "teaspoons",
+    "cups",
+    "pounds",
+    "ounces",
+  ];
 
   interface Countdown {
     time: number;
@@ -172,13 +60,18 @@ fetchPantryItems();
   }
 
   // Subscribe to the pantry store to get pantry data
-  const unsubscribe = pantryStore.subscribe((data) => {
+  const unsubscribe_pantry = pantryStore.subscribe((data) => {
     pantry = data;
+  });
+
+  const unsubscribe_categories = categoriesStore.subscribe((data) => {
+    categories = data;
   });
 
   onDestroy(() => {
     // Unsubscribe to avoid memory leaks
-    unsubscribe();
+    unsubscribe_pantry();
+    unsubscribe_categories();
   });
 
   // Fetch pantry items from backend when component mounts
@@ -195,6 +88,7 @@ fetchPantryItems();
       if (response.ok) {
         pantry = data;
         pantryStore.set(pantry);
+        categories = data.categories;
       } else {
         console.error("Error fetching pantry items:", data.error);
       }
@@ -202,43 +96,193 @@ fetchPantryItems();
       console.error("Error fetching pantry items:", error);
     }
   }
-  const saveUsedAmount = async (): Promise<void> => {
+
+  const saveUsedAmount = (): void => {
     const selectedIngredientValue = $selectedIngredient; // Get the value of selectedIngredient
-    const updateItem = {
-      name: selectedIngredientValue,
-      quantity: pantry.find(item => item.name === selectedIngredientValue)?.quantity - $amountUsed,
+    selectedIngredients[selectedIngredientValue] = {
+      amount: $amountUsed,
       measurement: $measurementUnit,
-      user_id: user_id, // Automatically associate the logged-in user
     };
 
+    // Close the form
+    showIngredientModal.set(false);
+  };
+
+  const saveEditedAmount = (): void => {
+    const ingredientName = $editIngredient;
+    selectedIngredients[ingredientName] = {
+      amount: $editAmount,
+      measurement: $editMeasurement,
+    };
+
+    // Close the form
+    showEditModal.set(false);
+  };
+
+  const removeSelectedIngredient = (ingredientName: string): void => {
+    delete selectedIngredients[ingredientName];
+  };
+
+  // Filter only the pantry items without categories
+  const filteredPantry = derived(pantryStore, ($pantry) => {
+    if (!$pantry || !$pantry.pantryItems) {
+      return [];
+    }
+
+    // Extract pantry items without categories
+    const filteredPantryItems = $pantry.pantryItems;
+
+    return filteredPantryItems;
+  });
+
+  const updateIngredientsAndIncrementRecipeCount = async (): Promise<void> => {
+  let invalidIngredients = []; // Array to collect invalid ingredient names
+  const token = $authStore.token;
+
+  try {
+    const $filteredPantry = get(filteredPantry); // Get the current value of filteredPantry
+
+    // Loop through selected ingredients and update quantities
+    for (const [ingredientName, details] of Object.entries(selectedIngredients)) {
+      const ingredient = $filteredPantry.find((item) => item.name === ingredientName);
+      const currentQuantity = ingredient?.quantity || 0;
+      const currentMeasurement = ingredient?.measurement || "grams";
+      let newQuantity = currentQuantity;
+
+      // Convert the amount used to the same unit as the current quantity
+      if (currentMeasurement === "grams") {
+        if (["grams", "kilograms", "tablespoons", "teaspoons", "cups", "pounds"].includes(details.measurement)) {
+          newQuantity -= convertToGrams(details.amount, details.measurement);
+        } else {
+          invalidIngredients.push(ingredientName);
+          continue;
+        }
+      } else if (currentMeasurement === "milliliters") {
+        if (["milliliters", "liters", "tablespoons", "teaspoons", "cups", "ounces"].includes(details.measurement)) {
+          newQuantity -= convertToMilliliters(details.amount, details.measurement);
+        } else {
+          invalidIngredients.push(ingredientName);
+          continue;
+        }
+      } else {
+        newQuantity -= details.amount;
+      }
+
+      // Remove or update the ingredient based on the new quantity
+      if (newQuantity <= 0) {
+        await removeIngredient(ingredientName);
+      } else {
+        const updateItem = {
+          name: ingredientName,
+          quantity: newQuantity,
+          measurement: currentMeasurement,
+          user_id: user_id, // Automatically associate the logged-in user
+        };
+
+        const response = await fetch(
+          `http://localhost:4010/pantry/update/${encodeURIComponent(ingredientName)}?user_id=${user_id}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(updateItem),
+          },
+        );
+
+        const data = await response.json();
+
+        if (response.ok) {
+          console.log("Ingredient updated successfully:", data);
+        } else {
+          warningMessage.set(
+            `Error updating ingredient: ${ingredientName}. ${data.error}`,
+          );
+        }
+      }
+    }
+
+    // Increment the recipe count
+    const response = await fetch('http://localhost:4001/api/users/increment-recipe-count', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to increment recipe count.');
+    }
+
+    const data = await response.json();
+    authStore.update((state) => ({
+      ...state,
+      recipeCount: data.recipe_count,
+    }));
+
+    console.log("Recipe count incremented successfully.");
+  } catch (error) {
+    console.error('Error updating ingredients or incrementing recipe count:', error);
+  }
+
+  if (invalidIngredients.length > 0) {
+    console.warn("Invalid ingredients:", invalidIngredients.join(", "));
+  }
+};
+  const removeIngredient = async (name): Promise<void> => {
     try {
       const response = await fetch(
-         `http://localhost:4010/pantry/update/${encodeURIComponent(selectedIngredientValue)}?user_id=${user_id}`,
+        `http://localhost:4010/pantry/delete/${name}?user_id=${user_id}`,
         {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(updateItem),
+          method: "DELETE",
         },
       );
 
       const data = await response.json();
 
       if (response.ok) {
-        console.log("Ingredient updated successfully:", data);
-        fetchPantryItems(); // Reload pantry items
-      } else {
-        console.error("Error updating ingredient:", data.error);
-      }
+        console.log("Ingredient removed successfully:", data);
 
-      // Reset fields and close the form
-      ingredient.set("");
-      amountUsed.set(0);
-      measurementUnit.set("grams");
-      showIngredientModal.set(false);
+        // Remove the ingredient from the pantry array in the frontend
+        pantry = pantry.filter((item) => item.name !== name);
+        pantryStore.set(pantry); // Update the store with the new array
+
+        console.log("Updated pantry in frontend:", pantry);
+      } else {
+        warningMessage.set(`Error removing ingredient: ${name}. ${data.error}`);
+      }
     } catch (error) {
-      console.error("Error saving updated ingredient:", error);
+      warningMessage.set(
+        `Error removing ingredient: ${name}. ${error.message}`,
+      );
+    }
+  };
+
+  const updateSavings = async (user_id, moneySaved, co2Saved) => {
+    try {
+      const response = await fetch(
+        `http://localhost:4000/users/${user_id}/savings`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            money_saved: moneySaved,
+            co2_saved: co2Saved,
+          }),
+        },
+      );
+
+      const data = await response.json();
+      if (data.success) {
+        console.log("Savings updated successfully!");
+      } else {
+        console.error("Error updating savings:", data.message);
+      }
+    } catch (error) {
+      console.error("Error updating savings:", error);
     }
   };
 
@@ -250,21 +294,10 @@ fetchPantryItems();
     if (response.ok) {
       const data = await response.json();
       isFavorite = data.isFavorite;
-
-    } else {
-      console.error("Failed to check favorite status");
-
     }
   }
 
   checkFavoriteStatus();
-
-  const openIngredientModal = (item) => {
-    selectedIngredient.set(item.name);
-    amount.set(0);
-    selectedMeasurement.set(item.measurement);
-    showIngredientModal.set(true);
-  };
 
   // Toggle favorite status
   export async function toggleFavorite() {
@@ -278,11 +311,7 @@ fetchPantryItems();
         },
       );
       if (response.ok) {
-        alert("This recipe is removed from favorites");
         isFavorite = false;
-      } else {
-        const error = await response.json();
-        alert(`Failed to remove from favorites: ${error.error}`);
       }
     } else {
       const response = await fetch("http://localhost:3012/favorites", {
@@ -290,33 +319,11 @@ fetchPantryItems();
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ recipe_id: recipe.id, user_id }),
       });
-
       if (response.ok) {
-        alert("This recipe is added to favorites");
         isFavorite = true;
-      } else {
-        const error = await response.json();
-        alert(`Failed to add to favorites: ${error.error}`);
       }
     }
     checkFavoriteStatus();
-
-  }
-
-  function getSteps(instructions: string) {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(instructions, "text/html");
-    const textContent = doc.body.textContent || "";
-
-    return textContent
-      .split(".")
-      .map((step) => step.trim())
-      .filter((step) => step !== "");
-  }
-
-  function containsTime(step: string) {
-    return /\b(minutes?|hours?|seconds?|mins?)\b/i.test(step);
-
   }
 
   function startCountdown(index: number, timeInSeconds: number) {
@@ -375,18 +382,143 @@ fetchPantryItems();
     return /(\d+)(?:\s*min|\s*sec|\s*hour)/i.test(step);
   }
 
-  let ingredients = [];
-  searchedIngredients.subscribe((items) => {
-    ingredients = items;
-  });
+  function updateCountdownMinutes(index: number, minutes: string) {
+    const value = parseInt(minutes, 10);
+    if (!isNaN(value)) {
+      countdowns[index] = {
+        ...countdowns[index],
+        minutes: value,
+      };
+    }
+  }
 
-  let message = "No ingredients from this recipe are in your pantry.";
+  function updateCountdownSeconds(index: number, seconds: string) {
+    const value = parseInt(seconds, 10);
+    if (!isNaN(value)) {
+      countdowns[index] = {
+        ...countdowns[index],
+        seconds: value,
+      };
+    }
+  }
+
+  function toggleShoppingList() {
+    if (!showShoppingList) {
+      findMissingIngredients();
+    }
+    showShoppingList = !showShoppingList;
+  }
+
+  function closeShoppingList() {
+    showShoppingList = false;
+  }
+
+  function findMissingIngredients() {
+    if (!recipe?.extendedIngredients || !Array.isArray(pantry)) return;
+
+    missingIngredients = [];
+    const recipeIngredients = recipe.extendedIngredients.map((ingredient) => ({
+      name: ingredient.name || ingredient.original,
+      requiredQuantity: ingredient.amount || 0,
+    }));
+
+    for (const recipeIngredient of recipeIngredients) {
+      const pantryItem = pantry.find(
+        (item) =>
+          item.name.toLowerCase() === recipeIngredient.name.toLowerCase(),
+      );
+
+      if (
+        !pantryItem ||
+        pantryItem.quantity < recipeIngredient.requiredQuantity
+      ) {
+        const missingQuantity =
+          recipeIngredient.requiredQuantity - (pantryItem?.quantity || 0);
+        missingIngredients.push({
+          name: recipeIngredient.name,
+          requiredQuantity: missingQuantity,
+        });
+      }
+    }
+  }
+
+  async function saveShoppingList() {
+    console.log("Full Recipe Data:", recipe);
+
+    if (!recipe || !recipe.title || !recipe.image) {
+      console.error("Invalid recipe data:", recipe);
+      alert("Recipe data is missing or incomplete.");
+      return;
+    }
+
+    console.log("Saving shopping list with data:", {
+      userId: user_id,
+      shoppingListName: recipe.title, // Recipe name as shopping list name
+      ingredients: missingIngredients, // Missing ingredients
+      recipeTitle: recipe.title, // Recipe title
+      recipeImage: recipe.image, // Recipe image URL
+    });
+
+    if (missingIngredients.length === 0) {
+      alert("No missing ingredients to save!");
+      return;
+    }
+
+    try {
+      const shoppingListResponse = await fetch(
+        "http://localhost:4053/shopping-lists",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: user_id,
+            shoppingListName: recipe.title,
+            ingredients: missingIngredients,
+            recipeTitle: recipe.title,
+            recipeImage: recipe.image,
+          }),
+        },
+      );
+
+      if (shoppingListResponse.ok) {
+        alert("Shopping list saved successfully!");
+      } else {
+        const error = await shoppingListResponse.json();
+        console.error("Failed to save shopping list:", error);
+        alert("Failed to save shopping list.");
+      }
+    } catch (error) {
+      console.error("Error saving shopping list:", error);
+      alert("Error saving shopping list.");
+    }
+  }
+
+  async function fetchShoppingLists() {
+    try {
+      const response = await fetch(
+        `http://localhost:4053/shopping-lists?userId=${user_id}`,
+      );
+      if (response.ok) {
+        const shoppingLists = await response.json();
+        console.log("Fetched shopping lists:", shoppingLists);
+        savedShoppingLists = shoppingLists;
+      } else {
+        console.error(
+          "Failed to fetch shopping lists. Status:",
+          response.status,
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching shopping lists:", error.message);
+    }
+  }
+
+  // Example call for pantry items (replace with actual function logic)
+  fetchPantryItems();
 </script>
-
 {#if recipe}
-  <div class="container w-full mx-auto px-4">
+  <div class="w-full mx-auto px-4">
     <section class="flex flex-col lg:flex-row mt-5">
-
       <div
         class="basis-full lg:basis-2/6 bg-gray-100 rounded-lg p-4 lg:p-10 lg:mr-8 mb-4 lg:mb-0"
       >
@@ -395,9 +527,61 @@ fetchPantryItems();
           src={recipe.image}
           alt={recipe.title}
         />
-        <h2 class="text-2xl lg:text-4xl mt-3 mb-3">
-          Ingredients in Your Pantry
-        </h2>
+        <h2 class="text-4xl mt-3 mb-3">Ingredients</h2>
+
+        <div>
+          <ul>
+            {#each recipe.extendedIngredients as ingredient}
+              <li>{ingredient.original}</li>
+            {/each}
+          </ul>
+          <button
+            class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 mt-4"
+            on:click={toggleShoppingList}
+          >
+            Show Shopping List
+          </button>
+        </div>
+
+        <!-- Button to add amount used -->
+        <button
+          class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full mb-4 hidden lg:block"
+          on:click={() => showIngredientModal.set(true)}
+        >
+          Add Amount Used
+        </button>
+        <img
+          src="./../../add-button.png"
+          alt="Add Amount Used"
+          class="w-20 h-20 fixed bottom-5 left-1/2 transform -translate-x-1/2 lg:hidden z-50 cursor-pointer"
+          on:click={() => showIngredientModal.set(true)}
+        />
+
+        <!-- Display selected ingredient details -->
+        {#each Object.entries(selectedIngredients) as [ingredientName, details]}
+          <div class="bg-white p-4 rounded-lg shadow-md mb-4">
+            <p class="text-lg font-semibold">Selected Ingredient:</p>
+            <p>Name: {ingredientName}</p>
+            <p>Amount Used: {details.amount} {details.measurement}</p>
+            <button
+              class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 mt-2"
+              on:click={() => {
+                editIngredient.set(ingredientName);
+                editAmount.set(details.amount);
+                editMeasurement.set(details.measurement);
+                showEditModal.set(true);
+              }}
+            >
+              Edit
+            </button>
+            <button
+              class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 mt-2 ml-2"
+              on:click={() => removeSelectedIngredient(ingredientName)}
+            >
+              Remove
+            </button>
+          </div>
+        {/each}
 
         <!-- CO2 Calculation Button -->
         <div
@@ -409,6 +593,7 @@ fetchPantryItems();
           </p>
           <button
             class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full"
+            on:click={updateIngredientsAndIncrementRecipeCount}
           >
             Complete
           </button>
@@ -418,12 +603,6 @@ fetchPantryItems();
       <!-- Recipe details and instructions -->
       <div class="basis-full lg:basis-4/5 bg-gray-100 rounded-lg p-4 lg:p-10">
         <h1 class="text-2xl lg:text-4xl mt-3 mb-3">
-
-      <div class="basis-2/6 bg-gray-100 rounded-lg p-10 lg:mr-8">
-        <img class="rounded-lg mb-5" src={recipe.image} alt={recipe.title} />
-
-        <h1 class="text-4xl mt-3 mb-3">
-
           {recipe.title}
           <img
             src={isFavorite ? "/solid-heart.png" : "/blank-heart.png"}
@@ -442,124 +621,15 @@ fetchPantryItems();
           {/each}
         </div>
 
-        <h2 class="text-2xl lg:text-4xl mt-3 mb-1">Ingredients</h2>
-        <div class="mb-5">
-          <ul>
-            {#each recipe.extendedIngredients as ingredient}
-              <li>{ingredient.original}</li>
-            {/each}
-          </ul>
-        </div>
-
         <h2 class="text-2xl lg:text-4xl mt-3 mb-1">Instructions</h2>
         <p class="mb-1 text-gray-500 text-sm">
-          (Make sure to input the amount of ingredients used after every step so
-          we can calculate how much CO2 and money you have saved.)
+          (Don't forget to input the amount of ingredients used after every step
+          so we can calculate how much CO2 and money you have saved.)
         </p>
         {#each getSteps(recipe.instructions) as step, index (step)}
           <div class="step flex flex-col lg:flex-row items-start gap-4 mb-4">
             <div class="flex items-left">
               <h3 class="text-lg lg:text-xl">Step {index + 1}</h3>
-              <button
-                class="ml-2 flex items-center justify-left"
-                on:click={() => openIngredientModal(index)}
-              >
-                {#if selectedIngredients[index]}
-                  <img
-                    src="../../../minus-button.png"
-                    alt="Ingredient Added"
-                    class="w-4 h-4"
-                  />
-
-        <h2 class="text-4xl mt-3 mb-3">Ingredients</h2>
-
-<div>
-  <ul>
-    {#each recipe.extendedIngredients as ingredient}
-      <li>{ingredient.original}</li>
-    {/each}
-  </ul>
-  <button
-    class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 mt-4"
-    on:click={toggleShoppingList}
-  >
-    Show Shopping List
-  </button>
-</div>
-
-        <div
-          class="recipe-card mt-3 p-4 bg-white border border-gray-300 rounded-lg text-center"
-        >
-          <p class="text-lg font-semibold mb-4">
-            If you finished this recipe, you can click the button below to get
-            your CO2 reduction calculated into account.
-          </p>
-          <button
-            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-          >
-            Complete
-          </button>
-        </div>
-      </div>
-      <div class="basis-4/6 bg-gray-100 rounded-lg p-10 lg:mr-8">
-        <h2 class="text-4xl mt-3 mb-3">Instructions</h2>
-        {#each getSteps(recipe.instructions) as step, index (step)}
-          <div class="step">
-            <h3 class="text-xl">Step {index + 1}</h3>
-            <p>{step}.</p>
-            {#if containsTime(step)}
-              <div class="flex items-center gap-2 mt-2">
-                <span class="text-lg">⏰</span>
-                <input
-                  type="number"
-                  placeholder="Min"
-                  min="0"
-                  value={countdowns[index]?.minutes || ""}
-                  on:input={(e) =>
-                    updateCountdownMinutes(index, e.target.value)}
-                  class="border border-gray-300 rounded px-2 w-20"
-                />
-                <span>:</span>
-                <input
-                  type="number"
-                  placeholder="Sec"
-                  min="0"
-                  max="59"
-                  value={countdowns[index]?.seconds || ""}
-                  on:input={(e) =>
-                    updateCountdownSeconds(index, e.target.value)}
-                  class="border border-gray-300 rounded px-2 w-20"
-                />
-                <button
-                  on:click={() =>
-                    startCountdown(
-                      index,
-                      Number(countdowns[index]?.minutes || 0) * 60 +
-                        Number(countdowns[index]?.seconds || 0),
-                    )}
-                  class="bg-blue-500 text-white px-3 py-1 rounded"
-                >
-                  Start
-                </button>
-                {#if countdowns[index] && countdowns[index].time !== null}
-                  <p class="text-gray-700">
-                    Time left: {Math.floor(countdowns[index].time / 60)}m
-                    {countdowns[index].time % 60}s
-                  </p>
-                {:else if countdowns[index]?.minutes || countdowns[index]?.seconds}
-                  <p class="text-gray-700">
-                    Time left: {countdowns[index].minutes || 0}m
-                    {countdowns[index]?.seconds || 0}s
-                  </p>
-
-                {:else}
-                  <img
-                    src="../../../add-button.png"
-                    alt="Add Ingredient"
-                    class="w-4 h-4"
-                  />
-                {/if}
-              </button>
             </div>
             <div class="flex-2 text-left">
               <p class="mt-2">{step}.</p>
@@ -665,7 +735,7 @@ fetchPantryItems();
             class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
           >
             <option value="">Select an ingredient</option>
-            {#each pantry as ingredient}
+            {#each $filteredPantry as ingredient}
               <option value={ingredient.name}>{ingredient.name}</option>
             {/each}
           </select>
@@ -682,9 +752,9 @@ fetchPantryItems();
             bind:value={$measurementUnit}
             class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
           >
-            <option value="grams">Grams</option>
-            <option value="milliliters">Milliliters</option>
-            <option value="pieces">Pieces</option>
+            {#each measurementUnits as unit}
+              <option value={unit}>{unit}</option>
+            {/each}
           </select>Measurement
         </div>
         <div class="flex justify-end space-x-4">
@@ -699,6 +769,70 @@ fetchPantryItems();
             class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
           >
             Save
+          </button>
+        </div>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Modal for Editing Ingredient Amount -->
+  {#if $showEditModal}
+    <div
+      class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
+    >
+      <div class="bg-white p-6 rounded-lg shadow-lg w-11/12 md:max-w-md">
+        <h2 class="text-2xl font-bold text-green-600 mb-4">
+          Edit {$selectedIngredient}
+        </h2>
+        <div class="mb-4">
+          <input
+            type="number"
+            bind:value={$editAmount}
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+          />Amount
+        </div>
+        <div class="mb-4">
+          <select
+            bind:value={$editMeasurement}
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+          >
+            {#each measurementUnits as unit}
+              <option value={unit}>{unit}</option>
+            {/each}
+          </select>Measurement
+        </div>
+        <div class="flex justify-end space-x-4">
+          <button
+            on:click={() => showEditModal.set(false)}
+            class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+          >
+            Cancel
+          </button>
+          <button
+            on:click={saveEditedAmount}
+            class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Warning Popup -->
+  {#if $warningMessage}
+    <div
+      class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
+    >
+      <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
+        <h2 class="text-2xl font-bold text-red-600 mb-4">Warning</h2>
+        <p class="text-gray-700 mb-4">{$warningMessage}</p>
+        <div class="flex justify-end">
+          <button
+            on:click={() => warningMessage.set("")}
+            class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+          >
+            Close
           </button>
         </div>
       </div>
@@ -746,8 +880,6 @@ fetchPantryItems();
     </div>
   </div>
 {/if}
-
-
 
 <style>
   /* Add your custom styles here */

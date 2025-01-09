@@ -2,19 +2,22 @@
   import { goto } from "$app/navigation";
   import { onDestroy, onMount } from "svelte";
   import { authStore } from "../lib/stores/authStore";
-  import { pantryStore } from "../lib/stores/pantryStore";
+  import { pantryStore, categoriesStore } from "../lib/stores/pantryStore";
   import { searchedIngredients } from '../lib/stores/ingredientStore';
-  import { derived } from 'svelte/store';
+  import { derived, writable } from 'svelte/store';
   import { writable } from "svelte/store";
 
   let pantry = [];
-  const unsubscribe = pantryStore.subscribe((data) => {
+  let categories = [];
+  const unsubscribe_pantry = pantryStore.subscribe((data) => {
     pantry = data;
   });
 
-  onDestroy(() => {
-    unsubscribe();
-  });
+    onDestroy(() => {
+        // Unsubscribe to avoid memory leaks
+        unsubscribe_pantry();
+        unsubscribe_categories();
+    });
 
   let searchQuery = "";
   let searchActive = false;
@@ -51,11 +54,9 @@
       user_id: user_id, // Automatically associate the logged-in user
     };
 
-    // Check if the expiration date is in the past
-    if (new Date(newItem.expiration_date).getTime() < new Date().getTime()) {
-      warningMessage.set("Please input a valid expiration date.");
-      return;
-    }
+    const unsubscribe_categories = categoriesStore.subscribe((data) => {
+        categories = data;
+    });
 
     // Check if the ingredient already exists in the pantry
     if (
@@ -173,22 +174,50 @@
     }
   };
 
-  const handleImageError = (event: Event) => {
-    const img = event.target as HTMLImageElement;
-    img.src = "/images/placeholder.png";
-  };
+    let searchQuery = "";
+    let searchActive = false;
+    let selectedIngredients: string[] = [];
+    let recipes: any[] = [];
+    let seasonalRecipes: any[] = [];
+    let username = "";
+    let user_id = 1;
 
-  const previousRecipes1 = () => {
-    if (currentRecipeIndex1 > 0) {
-      currentRecipeIndex1 -= 1;
-    }
-  };
+    const visibleRecipeCount = 6;
+    let currentRecipeIndex1 = 0;
+    let currentRecipeIndex2 = 0;
 
-  const nextRecipes1 = () => {
-    if (currentRecipeIndex1 + visibleRecipeCount < recipes.length) {
-      currentRecipeIndex1 += 1;
-    }
-  };
+
+    $: username = $authStore.user?.username || 'Guest';
+
+
+    const searchRecipes = async () => {
+        if (!selectedIngredients.length) {
+            alert(
+                "Please select at least one ingredient to search for recipes.",
+            );
+        } else {
+            const ingredientsParam = selectedIngredients.join(",");
+            goto(`/search?ingredients=${ingredientsParam}`);
+        }
+    };
+  
+    // Fallback for broken image
+    const handleImageError = (event: Event) => {
+        const img = event.target as HTMLImageElement;
+        img.src = "/images/placeholder.png";
+    };
+    // Recipe navigation functions for first section
+    const previousRecipes1 = () => {
+        if (currentRecipeIndex1 > 0) {
+            currentRecipeIndex1 -= 1;
+        }
+    };
+
+    const nextRecipes1 = () => {
+        if (currentRecipeIndex1 + visibleRecipeCount < recipes.length) {
+            currentRecipeIndex1 += 1;
+        }
+    };
 
     // Recipe navigation functions for seasonal recipes
     const previousRecipes2 = () => {
@@ -205,19 +234,32 @@
 
     // Sort the pantry items by expiration date
     const sortedPantry = derived(pantryStore, ($pantry) => {
-        // Check if $pantry is valid and an array, if not return an empty array
-        if (!$pantry || !Array.isArray($pantry)) {
-            return []; // Return an empty array if pantry is not yet initialized
+        if (!$pantry || !$pantry.pantryItems) {
+            return [];
         }
 
-        // Sort the pantry by expiration date
-        return $pantry
+        // Extract and sort pantry items by expiration date
+        const sortedPantryItems = $pantry.pantryItems
             .slice() // Creates a shallow copy of the array
             .sort(
                 (a, b) =>
                     new Date(a.expiration_date).getTime() -
                     new Date(b.expiration_date).getTime(),
             );
+
+        return sortedPantryItems;
+    });
+
+    // Filter only the pantry items without categories
+    const filteredPantry = derived(pantryStore, ($pantry) => {
+        if (!$pantry || !$pantry.pantryItems) {
+            return [];
+        }
+
+        // Extract pantry items without categories
+        const filteredPantryItems = $pantry.pantryItems;
+
+        return filteredPantryItems;
     });
 
     // Reactive variables
@@ -252,7 +294,10 @@
 
     // Function to go to the next ingredients
     const nextIngredients = () => {
-        if (currentIngredientIndex + switchingIngredients < 20) {
+        if (
+            currentIngredientIndex + switchingIngredients <
+            nearestExpiringIngredients.length
+        ) {
             currentIngredientIndex += switchingIngredients; // Move backwards in blocks of switchingIngredients (1)
         }
     };
@@ -414,67 +459,6 @@
     }
 </script>
 
-<!-- Add Ingredient Form -->
-{#if $addManually}
-<div
-class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
->
-<div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full relative">
-  <h2 class="text-2xl font-bold text-green-600 mb-4">Add an Ingredient</h2>
-  <div class="mb-4">
-    <input
-      type="string"
-      bind:value={$selectedIngredient}
-      class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
-    />
-    Name
-  </div>
-  <div class="mb-4">
-    <input
-      type="number"
-      bind:value={$weight}
-      class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
-    />
-    Select the amount
-  </div>
-  <div class="mb-4">
-    <select
-      bind:value={$selectedMeasurement}
-      class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
-    >
-      <option value="grams">Grams</option>
-      <option value="milliliters">Milliliters</option>
-      <option value="pieces">Pieces</option>
-    </select>Measurement
-  </div>
-  <div class="mb-4">
-    <input
-      type="date"
-      bind:value={$expirationDate}
-      class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
-    />
-    Select the expiration date
-  </div>
-  <div class="flex justify-end space-x-4">
-    <button
-      on:click={() => {
-        addManually.set(false); // Aquí cerramos el formulario
-      }}
-      class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
-    >
-      Cancel
-    </button>
-    <button
-      on:click={saveIngredientDetails}
-      class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
-    >
-      Save
-    </button>
-  </div>
-</div>
-</div>
-{/if}
-
 <div class="container mx-auto mt-8 px-4 lg:px-6 text-center">
     <h2 class="text-3xl font-bold text-green-800 italic mb-6">
         Hello, {username}!
@@ -507,7 +491,7 @@ class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center 
             <div class="relative">
                 <input
                     type="text"
-                    bind:value={searchQuery}
+                    bind:value={selectedIngredients}
                     placeholder="Select ingredients from your pantry"
                     on:focus={() => (searchActive = true)}
                     class="w-full p-4 pr-12 rounded-md shadow-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -539,7 +523,7 @@ class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center 
                     >
                         <h3 class="font-bold mb-2">Select Ingredients</h3>
                         <ul>
-                            {#each pantry as item, index (item.id ? item.id : index)}
+                            {#each $filteredPantry as item, index (item.id ? item.id : index)}
                                 <li class="flex items-center mb-2">
                                     <label class="flex items-center space-x-2">
                                         <input
@@ -589,7 +573,7 @@ class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center 
             </button>
 
             <!-- List of Ingredients -->
-            <div class="flex items-center space-x-4 h-40 overflow-x-auto">
+            <div class="flex items-center space-x-4 h-60 overflow-x-auto">
                 {#each $nearestExpiringIngredients.slice(currentIngredientIndex, currentIngredientIndex + visibleIngredientCount) as item}
                     {#if (new Date(item.expiration_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24) <= 3}
                         <div class="flex flex-col items-center space-y-2">
@@ -605,8 +589,16 @@ class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center 
                             <span class="text-gray-700 text-sm"
                                 >{item.name}</span
                             >
+                            <span class="text-gray-500 text-xs"
+                                >Weight: {item.quantity}g</span
+                            >
+                            <span class="text-gray-500 text-xs"
+                                >Expires: {item.expiration_date}</span
+                            >
                             {#if (new Date(item.expiration_date).getTime() - new Date().getTime()) / (1000 * 60 * 60) <= 24}
-                                <span class="text-red-500 text-xs">Expiring today!</span>
+                                <span class="text-red-500 text-xs"
+                                    >Expiring today!</span
+                                >
                             {/if}
                         </div>
                     {/if}

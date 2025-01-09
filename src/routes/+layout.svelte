@@ -41,7 +41,7 @@
 
 <!-- Conditional Navigation Bar -->
 {#if !isLoginOrRegister}
-<nav class="w-full bg-white shadow-md p-4 flex justify-between items-center">
+<nav class="w-full bg-white shadow-md p-4 px-10 flex justify-between items-center">
   <div class="logo flex items-center space-x-2">
     <h1 class="text-2xl font-bold text-green-600 italic">FoodSaver</h1>
   </div>
@@ -81,7 +81,7 @@
 </div>
 {/if}
 
-<div class="layout flex flex-col min-h-screen relative">
+<div class="layout flex flex-col min-h-screen relative w-full">
   <img
     class="LeafBackgroundRemoved9 w-72 h-60 left-[-80.30px] top-[300px] absolute origin-top-left rotate-[0.0deg] rounded-xl -z-10"
     src="../../../leaf-background2.png"
@@ -89,12 +89,12 @@
   />
 
   <img
-    class="LeafBackgroundRemoved9 w-72 h-60 right-[-90px] top-[230px] absolute origin-top-left rotate-[270deg] rounded-xl -z-10"
+    class="LeafBackgroundRemoved9 w-72 h-60 right-[-50px] top-[230px] absolute origin-top-left rotate-[270deg] rounded-xl -z-10"
     src="../../../leaf-background1.png"
     alt="Leaf Background"
   />
 
-  <main class="flex-1 p-4">
+  <main class="flex-1 p-4 w-full">
     <slot />
   </main>
 
@@ -170,9 +170,11 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    width: 100%;
   }
 
   main {
     flex-grow: 1;
+    width: 100%;
   }
 </style>

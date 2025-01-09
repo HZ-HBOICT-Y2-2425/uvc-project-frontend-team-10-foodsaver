@@ -33,7 +33,6 @@
         unsubscribe_categories();
     });
 
-    let searchQuery = "";
     let searchActive = false;
     let selectedIngredients: string[] = [];
     let recipes: any[] = [];
@@ -240,6 +239,18 @@
         const filteredPantryItems = $pantry.pantryItems;
 
         return filteredPantryItems;
+    });
+
+        // Filter only the pantry items without categories
+        const filteredPantryCategories = derived(categoriesStore, ($pantry) => {
+        if (!$pantry || !$pantry.categories) {
+            return [];
+        }
+
+        // Extract pantry items without categories
+        const filteredPantryCategories = $pantry.categories;
+
+        return filteredPantryCategories;
     });
 
     // Reactive variables
@@ -527,7 +538,7 @@
 
 <!-- Recipes Section -->
 <div class="flex flex-col space-y-8">
-    <div class="container mx-auto mt-8 px-4 lg:px-6 text-center">
+    <div class="container mx-auto mt-8 px-4 lg:px-6 text-left">
         <h3 class="text-2xl font-semibold mb-4">
             Recipes with your expiring ingredients:
         </h3>
@@ -599,7 +610,7 @@
     </div>
 
     <!-- Seasonal Recipes Section -->
-    <div class="recipes-with-ingredients-section mb-8 text-left">
+    <div class="container mx-auto mt-8 px-4 lg:px-6 text-left">
         <h3 class="text-2xl font-semibold mb-4">Seasonal Recipes:</h3>
         {#if seasonalRecipes.length > 0}
             <div class="flex items-center space-x-4 overflow-x-auto">

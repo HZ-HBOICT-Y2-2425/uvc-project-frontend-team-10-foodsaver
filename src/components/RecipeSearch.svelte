@@ -7,6 +7,19 @@
 
     let pantry = [];
     let categories = [];
+    let addManually = writable<boolean>(false);
+    let warningMessage = writable<string>("");
+    let category = writable<string>("");
+    let selectedIngredient = writable<string>("");
+    let weight = writable<number>(0);
+    let selectedMeasurement = writable<string>("grams");
+    let expirationDate = writable<string>("");
+    let ingredient = writable<string>("");
+    const measurementUnits = [
+        "grams",
+        "milliliters",
+        "pieces",
+    ];
 
     // Subscribe to the store to get pantry data
     const unsubscribe_pantry = pantryStore.subscribe((data) => {
@@ -49,6 +62,124 @@
             goto(`/search?ingredients=${ingredientsParam}`);
         }
     };
+
+    // Save new ingredient details (Add item to backend)
+  const saveIngredientDetails = async (): Promise<void> => {
+    const newItem = {
+      name: $selectedIngredient,
+      quantity: $weight,
+      measurement: $selectedMeasurement,
+      expiration_date: $expirationDate,
+      category: $category,
+      user_id: user_id, // Automatically associate the logged-in user
+    };
+
+    // Check if the expiration date is in the past
+    if (new Date(newItem.expiration_date).getTime() < new Date().getTime()) {
+      warningMessage.set("Please input a valid expiration date.");
+      return;
+    }
+
+    // Check if the ingredient already exists in the pantry
+    if (
+      pantry.some(
+        (item) => item.name.toLowerCase() === newItem.name.toLowerCase(),
+      )
+    ) {
+      alert("This ingredient already exists in your pantry.");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `http://localhost:4010/pantry/add?user_id=${user_id}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(newItem),
+        },
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log("Ingredient added successfully:", data);
+        fetchPantryItems(); // Reload pantry items
+      } else {
+        console.error("Error adding ingredient:", data.error);
+      }
+
+      // Reset input fields and close the form
+      ingredient.set("");
+      weight.set(0);
+      expirationDate.set("");
+      addManually.set(false);
+      category.set("");
+    } catch (error) {
+      console.error("Error saving ingredient:", error);
+    }
+  };
+
+    // display ingredients in the pantry
+    async function fetchPantryItems() {
+    try {
+      const response = await fetch(
+        `http://localhost:4010/pantry?user_id=${user_id}`,
+      );
+      const data = await response.json();
+      if (response.ok) {
+        pantry = data.pantryItems;
+        categories = data.categories;
+        categoriesStore.set(data.categories.map((cat) => cat.category));
+        pantryStore.set(pantry);
+        checkExpiredIngredients();
+      } else {
+        console.error("Error fetching pantry items:", data.error);
+      }
+    } catch (error) {
+      console.error("Error fetching pantry items:", error);
+    }
+  }
+
+  async function checkExpiredIngredients() {
+    const now = new Date().getTime();
+    for (const item of pantry) {
+      if (new Date(item.expiration_date).getTime() < now) {
+        await removeIngredient(item.name);
+        warningMessage.set(`The ingredient "${item.name}" went bad. :(`);
+      }
+    }
+  }
+
+    // Remove ingredient from pantry store (Delete item from backend)
+    const removeIngredient = async (name): Promise<void> => {
+    try {
+      const response = await fetch(
+        `http://localhost:4010/pantry/delete/${name}?user_id=${user_id}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log("Ingredient removed successfully:", data);
+
+        // Remove the ingredient from the pantry array in the frontend
+        pantry = pantry.filter((item) => item.name !== name);
+        pantryStore.set(pantry); // Update the store with the new array
+
+        console.log("Updated pantry in frontend:", pantry);
+      } else {
+        console.error("Error removing ingredient:", data.error);
+      }
+    } catch (error) {
+      console.error("Error removing ingredient:", error);
+    }
+  };
   
     // Fallback for broken image
     const handleImageError = (event: Event) => {
@@ -317,7 +448,14 @@
     <div
         class="search-bar-container flex items-center justify-center w-full relative mb-8"
     >
-
+    <div class="ml-4 mr-4">
+        <button
+            class="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring focus:ring-green-300"
+            on:click={() => addManually.set(true)}
+        >
+            Add Ingredients
+        </button>
+    </div>
         <div class="relative flex-grow max-w-2xl">
             <div class="relative">
                 <input
@@ -597,6 +735,100 @@
         </div>
     </div>
 </div>
+
+<!-- Add Ingredients Manually -->
+{#if $addManually}
+  <div
+    class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
+  >
+    <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full relative">
+      <!-- Warning Popup -->
+      {#if $warningMessage}
+        <div
+          class="absolute inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
+        >
+          <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
+            <h2 class="text-2xl font-bold text-red-600 mb-4">Warning</h2>
+            <p class="text-gray-700 mb-4">{$warningMessage}</p>
+            <div class="flex justify-end">
+              <button
+                on:click={() => warningMessage.set("")}
+                class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      {/if}
+      <h2 class="text-2xl font-bold text-green-600 mb-4">
+        {#if $addManually}
+          Add an Ingredient
+        {/if}
+      </h2>
+      {#if $addManually}
+        <div class="mb-4">
+          <select
+            bind:value={$category}
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+          >
+            <option value="">Select a category</option>
+            {#each categories as category}
+              <option value={category}>{category}</option>
+            {/each}
+          </select>Category
+        </div>
+        <div class="mb-4">
+          <input
+            type="string"
+            bind:value={$selectedIngredient}
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+          />Name
+        </div>
+      {/if}
+      <div class="mb-4">
+        <input
+          type="number"
+          bind:value={$weight}
+          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+        />Select the amount
+      </div>
+      <div class="mb-4">
+        <select
+          bind:value={$selectedMeasurement}
+          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+        >
+          {#each measurementUnits as unit}
+            <option value={unit}>{unit}</option>
+          {/each}
+        </select>Measurement
+      </div>
+      <div class="mb-4">
+        <input
+          type="date"
+          bind:value={$expirationDate}
+          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+        />Select the expiration date
+      </div>
+      <div class="flex justify-end space-x-4">
+        <button
+          on:click={() => {
+            addManually.set(false);
+          }}
+          class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+        >
+          Cancel
+        </button>
+        <button
+          on:click={() =>saveIngredientDetails()}
+          class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
     .dropdown {

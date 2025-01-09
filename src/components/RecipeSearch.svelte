@@ -1,27 +1,178 @@
 <script lang="ts">
-    import { goto } from "$app/navigation";
-    import { onDestroy, onMount } from "svelte";
-    import { authStore } from "../lib/stores/authStore";
-    import { pantryStore, categoriesStore } from "../lib/stores/pantryStore";
-    import { derived, writable } from "svelte/store";
+  import { goto } from "$app/navigation";
+  import { onDestroy, onMount } from "svelte";
+  import { authStore } from "../lib/stores/authStore";
+  import { pantryStore, categoriesStore } from "../lib/stores/pantryStore";
+  import { searchedIngredients } from '../lib/stores/ingredientStore';
+  import { derived, writable } from 'svelte/store';
+  import { writable } from "svelte/store";
 
-    let pantry = [];
-    let categories = [];
-
-    // Subscribe to the store to get pantry data
-    const unsubscribe_pantry = pantryStore.subscribe((data) => {
-        pantry = data;
-    });
-
-    const unsubscribe_categories = categoriesStore.subscribe((data) => {
-        categories = data;
-    });
+  let pantry = [];
+  let categories = [];
+  const unsubscribe_pantry = pantryStore.subscribe((data) => {
+    pantry = data;
+  });
 
     onDestroy(() => {
         // Unsubscribe to avoid memory leaks
         unsubscribe_pantry();
         unsubscribe_categories();
     });
+
+  let searchQuery = "";
+  let searchActive = false;
+  let selectedIngredients: string[] = [];
+  let recipes: any[] = [];
+  let seasonalRecipes: any[] = [];
+  let username = "";
+  let ingredient = writable<string>("");
+  let weight = writable<number>(0);
+  let expirationDate = writable<string>("");
+  let addManually = writable<boolean>(false);
+  let warningMessage = writable<string>("");  
+  let selectedIngredient = writable<string>("");
+  let selectedMeasurement = writable<string>("grams");
+
+  const visibleRecipeCount = 6;
+  let currentRecipeIndex1 = 0;
+  let currentRecipeIndex2 = 0;
+  let user_id = 1;
+
+  authStore.subscribe((state) => {
+    user_id=state.user?.id || 1;
+    console.log("Auth store state in home page: ", state);
+    username = state.user?.username || "";
+  });
+
+  // Save new ingredient details (Add item to backend)
+  const saveIngredientDetails = async (): Promise<void> => {
+    const newItem = {
+      name: $selectedIngredient,
+      quantity: $weight,
+      measurement: $selectedMeasurement,
+      expiration_date: $expirationDate,
+      user_id: user_id, // Automatically associate the logged-in user
+    };
+
+    const unsubscribe_categories = categoriesStore.subscribe((data) => {
+        categories = data;
+    });
+
+    // Check if the ingredient already exists in the pantry
+    if (
+      pantry.some(
+        (item) => item.name.toLowerCase() === newItem.name.toLowerCase(),
+      )
+    ) {
+      alert("This ingredient already exists in your pantry.");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `http://localhost:4010/pantry/add?user_id=${user_id}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(newItem),
+        },
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log("Ingredient added successfully:", data);
+        fetchPantryItems(); // Reload pantry items
+      } else {
+        console.error("Error adding ingredient:", data.error);
+      }
+
+      // Reset input fields and close the form
+      ingredient.set("");
+      weight.set(0);
+      expirationDate.set("");
+      addManually.set(false);
+    } catch (error) {
+      console.error("Error saving ingredient:", error);
+    }
+  };
+
+  const openAddManually = () => {
+    ingredient.set("");
+    weight.set(0);
+    expirationDate.set("");
+    addManually.set(true);
+  };
+
+    // display ingredients in the pantry
+    async function fetchPantryItems() {
+    try {
+      const response = await fetch(
+        `http://localhost:4010/pantry?user_id=${user_id}`
+      );
+      const data = await response.json();
+      if (response.ok) {
+        pantry = data;
+        pantryStore.set(pantry);
+        checkExpiredIngredients();
+      } else {
+        console.error("Error fetching pantry items:", data.error);
+      }
+    } catch (error) {
+      console.error("Error fetching pantry items:", error);
+    }
+  }
+
+    // Check for expired ingredients and remove them
+    async function checkExpiredIngredients() {
+    const now = new Date().getTime();
+    for (const item of pantry) {
+      if (new Date(item.expiration_date).getTime() < now) {
+        await removeIngredient(item.name);
+        warningMessage.set(`The ingredient "${item.name}" went bad. :(`);
+      }
+    }
+  }
+
+    // Remove ingredient from pantry store (Delete item from backend)
+    const removeIngredient = async (name: string): Promise<void> => {
+    try {
+      const response = await fetch(
+        `http://localhost:4010/pantry/delete/${name}?user_id=${user_id}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log("Ingredient removed successfully:", data);
+
+        // Remove the ingredient from the pantry array in the frontend
+        pantry = pantry.filter((item) => item.name !== name);
+        pantryStore.set(pantry); // Update the store with the new array
+
+        console.log("Updated pantry in frontend:", pantry);
+      } else {
+        console.error("Error removing ingredient:", data.error);
+      }
+    } catch (error) {
+      console.error("Error removing ingredient:", error);
+    }
+  };
+
+  const searchRecipes = () => {
+    if (!selectedIngredients.length) {
+      alert("Please select at least one ingredient to search for recipes.");
+    } else {
+      const ingredientsParam = selectedIngredients.join(",");
+      searchedIngredients.set(selectedIngredients); // Update the store with selected ingredients
+      goto(`/search?ingredients=${ingredientsParam}`);
+    }
+  };
 
     let searchQuery = "";
     let searchActive = false;
@@ -317,6 +468,24 @@
     <div
         class="search-bar-container flex items-center justify-center w-full relative mb-8"
     >
+
+    <div class="ml-4 mr-4">
+        <button
+            class="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring focus:ring-green-300"
+            on:click={() => addManually.set(true)}
+        >
+            Add Manually
+        </button>
+    </div>
+        <!-- Favourites Button -->
+        <div class="ml-4 mr-4">
+            <button
+                class="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring focus:ring-green-300"
+                on:click={() => goto("/favorite")}
+            >
+                Favourites
+            </button>
+        </div>
 
         <div class="relative flex-grow max-w-2xl">
             <div class="relative">

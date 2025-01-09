@@ -4,6 +4,7 @@
     import { authStore } from "../lib/stores/authStore";
     import { pantryStore, categoriesStore } from "../lib/stores/pantryStore";
     import { derived, writable } from "svelte/store";
+    import { API_KEY } from "../lib/index"; // Import the API key
 
     let pantry = [];
     let categories = [];
@@ -15,11 +16,7 @@
     let selectedMeasurement = writable<string>("grams");
     let expirationDate = writable<string>("");
     let ingredient = writable<string>("");
-    const measurementUnits = [
-        "grams",
-        "milliliters",
-        "pieces",
-    ];
+    const measurementUnits = ["grams", "milliliters", "pieces"];
 
     // Subscribe to the store to get pantry data
     const unsubscribe_pantry = pantryStore.subscribe((data) => {
@@ -48,9 +45,7 @@
     let currentRecipeIndex1 = 0;
     let currentRecipeIndex2 = 0;
 
-
-    $: username = $authStore.user?.username || 'Guest';
-
+    $: username = $authStore.user?.username || "Guest";
 
     const searchRecipes = async () => {
         if (!selectedIngredients.length) {
@@ -64,123 +59,128 @@
     };
 
     // Save new ingredient details (Add item to backend)
-  const saveIngredientDetails = async (): Promise<void> => {
-    const newItem = {
-      name: $selectedIngredient,
-      quantity: $weight,
-      measurement: $selectedMeasurement,
-      expiration_date: $expirationDate,
-      category: $category,
-      user_id: user_id, // Automatically associate the logged-in user
+    const saveIngredientDetails = async (): Promise<void> => {
+        const newItem = {
+            name: $selectedIngredient,
+            quantity: $weight,
+            measurement: $selectedMeasurement,
+            expiration_date: $expirationDate,
+            category: $category,
+            user_id: user_id, // Automatically associate the logged-in user
+        };
+
+        // Check if the expiration date is in the past
+        if (
+            new Date(newItem.expiration_date).getTime() < new Date().getTime()
+        ) {
+            warningMessage.set("Please input a valid expiration date.");
+            return;
+        }
+
+        // Check if the ingredient already exists in the pantry
+        if (
+            pantry.some(
+                (item) =>
+                    item.name.toLowerCase() === newItem.name.toLowerCase(),
+            )
+        ) {
+            alert("This ingredient already exists in your pantry.");
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `http://localhost:4010/pantry/add?user_id=${user_id}`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(newItem),
+                },
+            );
+
+            const data = await response.json();
+
+            if (response.ok) {
+                console.log("Ingredient added successfully:", data);
+                fetchPantryItems(); // Reload pantry items
+            } else {
+                console.error("Error adding ingredient:", data.error);
+            }
+
+            // Reset input fields and close the form
+            ingredient.set("");
+            weight.set(0);
+            expirationDate.set("");
+            addManually.set(false);
+            category.set("");
+        } catch (error) {
+            console.error("Error saving ingredient:", error);
+        }
     };
-
-    // Check if the expiration date is in the past
-    if (new Date(newItem.expiration_date).getTime() < new Date().getTime()) {
-      warningMessage.set("Please input a valid expiration date.");
-      return;
-    }
-
-    // Check if the ingredient already exists in the pantry
-    if (
-      pantry.some(
-        (item) => item.name.toLowerCase() === newItem.name.toLowerCase(),
-      )
-    ) {
-      alert("This ingredient already exists in your pantry.");
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `http://localhost:4010/pantry/add?user_id=${user_id}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(newItem),
-        },
-      );
-
-      const data = await response.json();
-
-      if (response.ok) {
-        console.log("Ingredient added successfully:", data);
-        fetchPantryItems(); // Reload pantry items
-      } else {
-        console.error("Error adding ingredient:", data.error);
-      }
-
-      // Reset input fields and close the form
-      ingredient.set("");
-      weight.set(0);
-      expirationDate.set("");
-      addManually.set(false);
-      category.set("");
-    } catch (error) {
-      console.error("Error saving ingredient:", error);
-    }
-  };
 
     // display ingredients in the pantry
     async function fetchPantryItems() {
-    try {
-      const response = await fetch(
-        `http://localhost:4010/pantry?user_id=${user_id}`,
-      );
-      const data = await response.json();
-      if (response.ok) {
-        pantry = data.pantryItems;
-        categories = data.categories;
-        categoriesStore.set(data.categories.map((cat) => cat.category));
-        pantryStore.set(pantry);
-        checkExpiredIngredients();
-      } else {
-        console.error("Error fetching pantry items:", data.error);
-      }
-    } catch (error) {
-      console.error("Error fetching pantry items:", error);
+        try {
+            const response = await fetch(
+                `http://localhost:4010/pantry?user_id=${user_id}`,
+            );
+            const data = await response.json();
+            if (response.ok) {
+                pantry = data.pantryItems;
+                categories = data.categories;
+                categoriesStore.set(data.categories.map((cat) => cat.category));
+                pantryStore.set(pantry);
+                checkExpiredIngredients();
+            } else {
+                console.error("Error fetching pantry items:", data.error);
+            }
+        } catch (error) {
+            console.error("Error fetching pantry items:", error);
+        }
     }
-  }
 
-  async function checkExpiredIngredients() {
-    const now = new Date().getTime();
-    for (const item of pantry) {
-      if (new Date(item.expiration_date).getTime() < now) {
-        await removeIngredient(item.name);
-        warningMessage.set(`The ingredient "${item.name}" went bad. :(`);
-      }
+    async function checkExpiredIngredients() {
+        const now = new Date().getTime();
+        for (const item of pantry) {
+            if (new Date(item.expiration_date).getTime() < now) {
+                await removeIngredient(item.name);
+                warningMessage.set(
+                    `The ingredient "${item.name}" went bad. :(`,
+                );
+            }
+        }
     }
-  }
 
     // Remove ingredient from pantry store (Delete item from backend)
     const removeIngredient = async (name): Promise<void> => {
-    try {
-      const response = await fetch(
-        `http://localhost:4010/pantry/delete/${name}?user_id=${user_id}`,
-        {
-          method: "DELETE",
-        },
-      );
+        try {
+            const response = await fetch(
+                `http://localhost:4010/pantry/delete/${name}?user_id=${user_id}`,
+                {
+                    method: "DELETE",
+                },
+            );
 
-      const data = await response.json();
+            const data = await response.json();
 
-      if (response.ok) {
-        console.log("Ingredient removed successfully:", data);
+            if (response.ok) {
+                console.log("Ingredient removed successfully:", data);
 
-        // Remove the ingredient from the pantry array in the frontend
-        pantry = pantry.filter((item) => item.name !== name);
-        pantryStore.set(pantry); // Update the store with the new array
+                // Remove the ingredient from the pantry array in the frontend
+                pantry = pantry.filter((item) => item.name !== name);
+                pantryStore.set(pantry); // Update the store with the new array
 
-        console.log("Updated pantry in frontend:", pantry);
-      } else {
-        console.error("Error removing ingredient:", data.error);
-      }
-    } catch (error) {
-      console.error("Error removing ingredient:", error);
-    }
-  };
-  
+                console.log("Updated pantry in frontend:", pantry);
+            } else {
+                console.error("Error removing ingredient:", data.error);
+            }
+        } catch (error) {
+            console.error("Error removing ingredient:", error);
+        }
+    };
+
     // Fallback for broken image
     const handleImageError = (event: Event) => {
         const img = event.target as HTMLImageElement;
@@ -291,141 +291,67 @@
         }
     });
 
-    // Function to fetch recipes based on ingredients
+    // Fetch recipes based on selected ingredients
     async function fetchRecipes(pantry) {
-        const expiringIngredients = pantry.map((item) => item.name);
-        let fetchedRecipes = new Set();
+        const ingredients = pantry.map((item) => item.name).join(",");
+        console.log("Fetching recipes with ingredients:", ingredients);
+        recipes = [];
 
-        for (const ingredient of expiringIngredients) {
-            try {
-                // Fetch recipes with the ingredient
-                const response = await fetch(
-                    `https://www.themealdb.com/api/json/v1/1/filter.php?i=${ingredient}`,
-                );
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.meals) {
-                        // Loop through each meal to fetch detailed information
-                        for (const meal of data.meals) {
-                            try {
-                                const mealResponse = await fetch(
-                                    `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal.idMeal}`,
-                                );
-                                if (mealResponse.ok) {
-                                    const mealData = await mealResponse.json();
-                                    if (
-                                        mealData.meals &&
-                                        mealData.meals[0]?.strInstructions
-                                    ) {
-                                        // Only add the recipe if instructions are available
-                                        fetchedRecipes.add(
-                                            JSON.stringify(mealData.meals[0]),
-                                        );
-                                    }
-                                } else {
-                                    console.error(
-                                        "Failed to fetch detailed recipe info:",
-                                        meal.idMeal,
-                                        mealResponse.statusText,
-                                    );
-                                }
-                            } catch (error) {
-                                console.error(
-                                    "Error fetching detailed recipe info:",
-                                    meal.idMeal,
-                                    error,
-                                );
-                            }
-                        }
-                    }
-                } else {
-                    console.error(
-                        "Failed to fetch recipes for ingredient:",
-                        ingredient,
-                        response.statusText,
-                    );
-                }
-            } catch (error) {
-                console.error(
-                    "Error fetching recipes for ingredient:",
-                    ingredient,
-                    error,
-                );
+        try {
+            const response = await fetch(
+                `https://api.spoonacular.com/recipes/findByIngredients?ingredients=${ingredients}&number=8&apiKey=${API_KEY}`,
+            );
+            if (response.ok) {
+                const fetchedRecipes = await response.json();
+                recipes = fetchedRecipes.map((recipe) => ({
+                    id: recipe.id,
+                    title: recipe.title,
+                    image: recipe.image,
+                }));
+                console.log("Fetched recipes:", recipes);
+            } else {
+                console.error("Failed to fetch recipes:", response.statusText);
             }
+        } catch (error) {
+            console.error("Error fetching recipes:", error);
         }
-
-        // Convert Set back to an array of objects, removing duplicates
-        recipes = Array.from(fetchedRecipes).map((recipeStr) =>
-            JSON.parse(recipeStr),
-        );
     }
 
-    // Fetch seasonal recipes on component mount
+    // Fetch seasonal recipes
     onMount(async () => {
         try {
-            // Determine the current season
-            const month = new Date().getMonth() + 1; // Get current month (0-based, so add 1)
-            let seasonalTag = "";
+            const month = new Date().getMonth() + 1;
+            let seasonalIngredient = "";
 
-            // Assign tags based on the current month
             if (month >= 3 && month <= 5) {
-                seasonalTag = "asparagus"; // Spring
+                seasonalIngredient = "asparagus";
             } else if (month >= 6 && month <= 8) {
-                seasonalTag = "salad"; // Summer
+                seasonalIngredient = "tomato";
             } else if (month >= 9 && month <= 11) {
-                seasonalTag = "pumpkin"; // Fall
+                seasonalIngredient = "pumpkin";
             } else {
-                seasonalTag = "beef"; // Winter
+                seasonalIngredient = "potato";
             }
 
-            // Fetch recipes with the seasonal tag
-            const seasonalResponse = await fetch(
-                `https://www.themealdb.com/api/json/v1/1/filter.php?i=${seasonalTag}`,
+            console.log(
+                "Fetching seasonal recipes with ingredient:",
+                seasonalIngredient,
             );
-            if (seasonalResponse.ok) {
-                const seasonalData = await seasonalResponse.json();
-                let seasonalRecipesSet = new Set();
-
-                // Fetch detailed recipe info to check for instructions
-                for (const meal of seasonalData.meals) {
-                    try {
-                        const mealResponse = await fetch(
-                            `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal.idMeal}`,
-                        );
-                        if (mealResponse.ok) {
-                            const mealData = await mealResponse.json();
-                            if (
-                                mealData.meals &&
-                                mealData.meals[0]?.strInstructions
-                            ) {
-                                seasonalRecipesSet.add(
-                                    JSON.stringify(mealData.meals[0]),
-                                );
-                            }
-                        } else {
-                            console.error(
-                                "Failed to fetch detailed seasonal recipe info:",
-                                meal.idMeal,
-                                mealResponse.statusText,
-                            );
-                        }
-                    } catch (error) {
-                        console.error(
-                            "Error fetching detailed seasonal recipe info:",
-                            meal.idMeal,
-                            error,
-                        );
-                    }
-                }
-
-                // Update seasonalRecipes with those that have instructions
-                seasonalRecipes = Array.from(seasonalRecipesSet).map(
-                    (recipeStr) => JSON.parse(recipeStr),
-                );
+            const response = await fetch(
+                `https://api.spoonacular.com/recipes/findByIngredients?ingredients=${seasonalIngredient}&number=8&apiKey=${API_KEY}`,
+            );
+            if (response.ok) {
+                const fetchedRecipes = await response.json();
+                seasonalRecipes = fetchedRecipes.map((recipe) => ({
+                    id: recipe.id,
+                    title: recipe.title,
+                    image: recipe.image,
+                }));
+                console.log("Fetched seasonal recipes:", seasonalRecipes);
             } else {
                 console.error(
                     "Failed to fetch seasonal recipes:",
-                    seasonalResponse.statusText,
+                    response.statusText,
                 );
             }
         } catch (error) {
@@ -433,8 +359,7 @@
         }
     });
 
-    // jump to recipe details page
-    function goToRecipeDetails(recipeId: number) {
+    function goToRecipeDetails(recipeId) {
         goto(`/recipe/${recipeId}`);
     }
 </script>
@@ -448,14 +373,14 @@
     <div
         class="search-bar-container flex items-center justify-center w-full relative mb-8"
     >
-    <div class="ml-4 mr-4">
-        <button
-            class="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring focus:ring-green-300"
-            on:click={() => addManually.set(true)}
-        >
-            Add Ingredients
-        </button>
-    </div>
+        <div class="ml-4 mr-4">
+            <button
+                class="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring focus:ring-green-300"
+                on:click={() => addManually.set(true)}
+            >
+                Add Ingredients
+            </button>
+        </div>
         <div class="relative flex-grow max-w-2xl">
             <div class="relative">
                 <input
@@ -599,8 +524,10 @@
         </div>
     </div>
 
-    <!-- Recipes Section -->
-    <div class="recipes-with-ingredients-section mb-8 text-left">
+
+<!-- Recipes Section -->
+<div class="flex flex-col space-y-8">
+    <div class="container mx-auto mt-8 px-4 lg:px-6 text-center">
         <h3 class="text-2xl font-semibold mb-4">
             Recipes with your expiring ingredients:
         </h3>
@@ -631,15 +558,14 @@
                             class="recipe-card border p-4 rounded-lg text-center shadow-md w-40"
                         >
                             <img
-                                src={recipe.strMealThumb}
-                                alt={recipe.strMeal}
+                                src={recipe.image}
+                                alt={recipe.title}
                                 class="w-full h-24 object-cover rounded-md mb-2"
                                 on:error={handleImageError}
-                                on:click={() =>
-                                    goToRecipeDetails(recipe.idMeal)}
+                                on:click={() => goToRecipeDetails(recipe.id)}
                             />
                             <p class="font-semibold text-lg mb-2">
-                                {recipe.strMeal}
+                                {recipe.title}
                             </p>
                         </div>
                     {/each}
@@ -675,159 +601,169 @@
     <!-- Seasonal Recipes Section -->
     <div class="recipes-with-ingredients-section mb-8 text-left">
         <h3 class="text-2xl font-semibold mb-4">Seasonal Recipes:</h3>
-        <div class="flex items-center space-x-4 overflow-x-auto">
-            <button
-                on:click={previousRecipes2}
-                class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100"
-            >
-                <svg
-                    class="w-4 h-4"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+        {#if seasonalRecipes.length > 0}
+            <div class="flex items-center space-x-4 overflow-x-auto">
+                <button
+                    on:click={previousRecipes2}
+                    class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100"
                 >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M15 19l-7-7 7-7"
-                    />
-                </svg>
-            </button>
-            <div class="flex space-x-4">
-                {#each seasonalRecipes.slice(currentRecipeIndex2, currentRecipeIndex2 + visibleRecipeCount) as recipe}
-                    <div
-                        class="recipe-card border p-4 rounded-lg text-center shadow-md w-40"
+                    <svg
+                        class="w-4 h-4"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
                     >
-                        <img
-                            src={recipe.strMealThumb}
-                            alt={recipe.strMeal}
-                            class="w-full h-24 object-cover rounded-md mb-2"
-                            on:error={handleImageError}
-                            on:click={() => goToRecipeDetails(recipe.idMeal)}
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M15 19l-7-7 7-7"
                         />
-                        <p class="font-semibold text-lg mb-2">
-                            {recipe.strMeal}
-                        </p>
-                    </div>
-                {/each}
-            </div>
-            <button
-                on:click={nextRecipes2}
-                class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100"
-            >
-                <svg
-                    class="w-4 h-4"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+                    </svg>
+                </button>
+                <div class="flex space-x-4">
+                    {#each seasonalRecipes.slice(currentRecipeIndex2, currentRecipeIndex2 + visibleRecipeCount) as recipe}
+                        <div
+                            class="recipe-card border p-4 rounded-lg text-center shadow-md w-40"
+                        >
+                            <img
+                                src={recipe.image}
+                                alt={recipe.title}
+                                class="w-full h-24 object-cover rounded-md mb-2"
+                                on:error={handleImageError}
+                                on:click={() => goToRecipeDetails(recipe.id)}
+                            />
+                            <p class="font-semibold text-lg mb-2">
+                                {recipe.title}
+                            </p>
+                        </div>
+                    {/each}
+                </div>
+                <button
+                    on:click={nextRecipes2}
+                    class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100"
                 >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M9 5l7 7-7 7"
-                    />
-                </svg>
-            </button>
-        </div>
+                    <svg
+                        class="w-4 h-4"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M9 5l7 7-7 7"
+                        />
+                    </svg>
+                </button>
+            </div>
+        {:else}
+            <p class="text-gray-600">No seasonal recipes available.</p>
+        {/if}
+    </div>
     </div>
 </div>
 
 <!-- Add Ingredients Manually -->
 {#if $addManually}
-  <div
-    class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
-  >
-    <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full relative">
-      <!-- Warning Popup -->
-      {#if $warningMessage}
-        <div
-          class="absolute inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
-        >
-          <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
-            <h2 class="text-2xl font-bold text-red-600 mb-4">Warning</h2>
-            <p class="text-gray-700 mb-4">{$warningMessage}</p>
-            <div class="flex justify-end">
-              <button
-                on:click={() => warningMessage.set("")}
-                class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
-              >
-                Close
-              </button>
+    <div
+        class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
+    >
+        <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full relative">
+            <!-- Warning Popup -->
+            {#if $warningMessage}
+                <div
+                    class="absolute inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
+                >
+                    <div
+                        class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full"
+                    >
+                        <h2 class="text-2xl font-bold text-red-600 mb-4">
+                            Warning
+                        </h2>
+                        <p class="text-gray-700 mb-4">{$warningMessage}</p>
+                        <div class="flex justify-end">
+                            <button
+                                on:click={() => warningMessage.set("")}
+                                class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            {/if}
+            <h2 class="text-2xl font-bold text-green-600 mb-4">
+                {#if $addManually}
+                    Add an Ingredient
+                {/if}
+            </h2>
+            {#if $addManually}
+                <div class="mb-4">
+                    <select
+                        bind:value={$category}
+                        class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+                    >
+                        <option value="">Select a category</option>
+                        {#each categories as category}
+                            <option value={category}>{category}</option>
+                        {/each}
+                    </select>Category
+                </div>
+                <div class="mb-4">
+                    <input
+                        type="string"
+                        bind:value={$selectedIngredient}
+                        class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+                    />Name
+                </div>
+            {/if}
+            <div class="mb-4">
+                <input
+                    type="number"
+                    bind:value={$weight}
+                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+                />Select the amount
             </div>
-          </div>
+            <div class="mb-4">
+                <select
+                    bind:value={$selectedMeasurement}
+                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+                >
+                    {#each measurementUnits as unit}
+                        <option value={unit}>{unit}</option>
+                    {/each}
+                </select>Measurement
+            </div>
+            <div class="mb-4">
+                <input
+                    type="date"
+                    bind:value={$expirationDate}
+                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+                />Select the expiration date
+            </div>
+            <div class="flex justify-end space-x-4">
+                <button
+                    on:click={() => {
+                        addManually.set(false);
+                    }}
+                    class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+                >
+                    Cancel
+                </button>
+                <button
+                    on:click={saveIngredientDetails}
+                    class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+                >
+                    Save
+                </button>
+            </div>
         </div>
-      {/if}
-      <h2 class="text-2xl font-bold text-green-600 mb-4">
-        {#if $addManually}
-          Add an Ingredient
-        {/if}
-      </h2>
-      {#if $addManually}
-        <div class="mb-4">
-          <select
-            bind:value={$category}
-            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
-          >
-            <option value="">Select a category</option>
-            {#each categories as category}
-              <option value={category}>{category}</option>
-            {/each}
-          </select>Category
-        </div>
-        <div class="mb-4">
-          <input
-            type="string"
-            bind:value={$selectedIngredient}
-            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
-          />Name
-        </div>
-      {/if}
-      <div class="mb-4">
-        <input
-          type="number"
-          bind:value={$weight}
-          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
-        />Select the amount
-      </div>
-      <div class="mb-4">
-        <select
-          bind:value={$selectedMeasurement}
-          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
-        >
-          {#each measurementUnits as unit}
-            <option value={unit}>{unit}</option>
-          {/each}
-        </select>Measurement
-      </div>
-      <div class="mb-4">
-        <input
-          type="date"
-          bind:value={$expirationDate}
-          class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
-        />Select the expiration date
-      </div>
-      <div class="flex justify-end space-x-4">
-        <button
-          on:click={() => {
-            addManually.set(false);
-          }}
-          class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
-        >
-          Cancel
-        </button>
-        <button
-          on:click={saveIngredientDetails}
-          class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
-        >
-          Save
-        </button>
-      </div>
     </div>
-  </div>
+    
 {/if}
 
 <style>

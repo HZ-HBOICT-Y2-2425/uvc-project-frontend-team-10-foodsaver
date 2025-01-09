@@ -18,6 +18,7 @@
     let user_id = null; // Initialize user_id
     let isLoading = true; // Loading state
     let selectedList = null; // Store the selected shopping list for display
+    let isButtonDisabled = false; 
 
     $: username = $authStore.user?.username || 'Guest';
   
@@ -27,11 +28,11 @@
     });
   
     $: {
-      badges = [];
-      if (recipeCount >= 1) badges.push('/badges/badge_1.png');
-      if (recipeCount >= 5) badges.push('/badges/badge_2.png');
-      if (recipeCount >= 10) badges.push('/badges/badge_3.png');
-    }
+    badges = [];
+    if (recipeCount >= 1) badges.push({ image: '/badges/badge_1.png', description: 'Completed 1 recipe' });
+    if (recipeCount >= 5) badges.push({ image: '/badges/badge_2.png', description: 'Completed 5 recipes' });
+    if (recipeCount >= 10) badges.push({ image: '/badges/badge_3.png', description: 'Completed 10 recipes' });
+  }
   
     onMount(() => {
       if (!token) {
@@ -43,7 +44,7 @@
     async function updateUsername() {
       console.log('Sending token:', token);
   
-      const response = await fetch('http://localhost:4001/api/users/update-username', {
+      const response = await fetch('http://localhost:4000/api/users/update-username', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -256,7 +257,14 @@
         <h2 class="text-2xl font-semibold text-gray-800 mb-4">Achievements</h2>
         <div class="badge-container mt-4 flex flex-wrap justify-center gap-4">
           {#each badges as badge}
-            <img src={badge} alt="Achievement Badge" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full shadow-md" />
+            <div class="relative group">
+              <img src={badge.image} alt="Achievement Badge" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full shadow-md" />
+              <div
+                class="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 px-3 py-1 rounded bg-gray-800 text-white text-sm opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                {badge.description}
+              </div>
+            </div>
           {/each}
         </div>
       </div>
@@ -368,6 +376,10 @@
   
     .font-semibold {
       font-weight: 600;
+    }
+
+    .group-hover\:opacity-100 {
+      transition: opacity 0.3s;
     }
   </style>
   

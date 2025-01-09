@@ -182,7 +182,7 @@
     </header>
   
     <section class="w-full max-w-5xl flex flex-col sm:flex-row items-start">
-      <div class="flex flex-col items-center bg-white shadow-lg rounded-lg p-6 sm:w-1/3">
+      <div class="w-full flex flex-col items-center bg-white shadow-lg rounded-lg p-6 sm:w-1/3">
         <img
           src="/images/profile-placeholder.png"
           alt="Profile Avatar"
@@ -253,7 +253,7 @@
         </div>
       </div>
   
-      <div class="flex-grow mt-8 sm:mt-0 sm:ml-8 bg-white shadow-lg rounded-lg p-6 text-center">
+      <div class="w-full flex-grow mt-8 sm:mt-0 sm:ml-8 bg-white shadow-lg rounded-lg p-6 text-center">
         <h2 class="text-2xl font-semibold text-gray-800 mb-4">Achievements</h2>
         <div class="badge-container mt-4 flex flex-wrap justify-center gap-4">
           {#each badges as badge}

@@ -45,7 +45,7 @@
       }
 
       try {
-          const API_BASE_URL = 'http://localhost:4001/api/users';
+          const API_BASE_URL = 'http://localhost:4000/api/users';
 
           console.log("Sending login request to backend...");
           const response = await fetch(`${API_BASE_URL}/login`, {

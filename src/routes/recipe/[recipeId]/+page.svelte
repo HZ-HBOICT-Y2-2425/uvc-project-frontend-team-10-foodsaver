@@ -203,7 +203,7 @@
     }
 
     // Increment the recipe count
-    const response = await fetch('http://localhost:4001/api/users/increment-recipe-count', {
+    const response = await fetch('http://localhost:4000/api/users/increment-recipe-count', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

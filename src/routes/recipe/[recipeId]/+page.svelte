@@ -42,6 +42,7 @@
   let missingIngredients = [];
   let showShoppingList = false;
   let isButtonDisabled = false;
+  let isSpeaking = false;
 
   const measurementUnits = [
     "grams",
@@ -523,7 +524,33 @@
 
   // Example call for pantry items (replace with actual function logic)
   fetchPantryItems();
+
+  function readAloud() {
+    if ('speechSynthesis' in window) {
+      if (isSpeaking) {
+        speechSynthesis.cancel();
+        isSpeaking = false;
+      }
+      
+      const text = document.body.innerText;
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1; // Normal speed
+      utterance.pitch = 1; // Normal pitch
+      utterance.volume = 1; // Full volume
+
+      utterance.onend = () => {
+        isSpeaking = false;
+      };
+
+      isSpeaking = true;
+      speechSynthesis.speak(utterance);
+    } else {
+      alert('Sorry, your browser does not support speech synthesis!');
+    }
+  }
 </script>
+<button on:click={readAloud}>🔊 Read Aloud</button>
 {#if recipe}
   <div class="w-full mx-auto px-4">
     <section class="flex flex-col lg:flex-row mt-5">

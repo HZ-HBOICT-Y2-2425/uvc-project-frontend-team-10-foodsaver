@@ -74,6 +74,7 @@
     }
   }
 
+
   // Check for expired ingredients and remove them
   async function checkExpiredIngredients() {
     const now = new Date().getTime();

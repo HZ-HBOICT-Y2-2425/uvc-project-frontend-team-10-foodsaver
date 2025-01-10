@@ -57,68 +57,6 @@
         }
     };
 
-    // Save new ingredient details (Add item to backend)
-    const saveIngredientDetails = async (): Promise<void> => {
-        const newItem = {
-            name: $selectedIngredient,
-            quantity: $weight,
-            measurement: $selectedMeasurement,
-            expiration_date: $expirationDate,
-            category: $category,
-            user_id: user_id, // Automatically associate the logged-in user
-        };
-
-        // Check if the expiration date is in the past
-        if (
-            new Date(newItem.expiration_date).getTime() < new Date().getTime()
-        ) {
-            warningMessage.set("Please input a valid expiration date.");
-            return;
-        }
-
-        // Check if the ingredient already exists in the pantry
-        if (
-            pantry.some(
-                (item) =>
-                    item.name.toLowerCase() === newItem.name.toLowerCase(),
-            )
-        ) {
-            alert("This ingredient already exists in your pantry.");
-            return;
-        }
-
-        try {
-            const response = await fetch(
-                `http://localhost:4010/pantry/add?user_id=${user_id}`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(newItem),
-                },
-            );
-
-            const data = await response.json();
-
-            if (response.ok) {
-                console.log("Ingredient added successfully:", data);
-                fetchPantryItems(); // Reload pantry items
-            } else {
-                console.error("Error adding ingredient:", data.error);
-            }
-
-            // Reset input fields and close the form
-            ingredient.set("");
-            weight.set(0);
-            expirationDate.set("");
-            addManually.set(false);
-            category.set("");
-        } catch (error) {
-            console.error("Error saving ingredient:", error);
-        }
-    };
-
     // display ingredients in the pantry
     async function fetchPantryItems() {
         try {
@@ -151,34 +89,6 @@
             }
         }
     }
-
-    // Remove ingredient from pantry store (Delete item from backend)
-    const removeIngredient = async (name): Promise<void> => {
-        try {
-            const response = await fetch(
-                `http://localhost:4010/pantry/delete/${name}?user_id=${user_id}`,
-                {
-                    method: "DELETE",
-                },
-            );
-
-            const data = await response.json();
-
-            if (response.ok) {
-                console.log("Ingredient removed successfully:", data);
-
-                // Remove the ingredient from the pantry array in the frontend
-                pantry = pantry.filter((item) => item.name !== name);
-                pantryStore.set(pantry); // Update the store with the new array
-
-                console.log("Updated pantry in frontend:", pantry);
-            } else {
-                console.error("Error removing ingredient:", data.error);
-            }
-        } catch (error) {
-            console.error("Error removing ingredient:", error);
-        }
-    };
 
     // Fallback for broken image
     const handleImageError = (event: Event) => {
@@ -241,8 +151,8 @@
         return filteredPantryItems;
     });
 
-        // Filter only the pantry items without categories
-        const filteredPantryCategories = derived(categoriesStore, ($pantry) => {
+    // Filter only the pantry items without categories
+    const filteredPantryCategories = derived(categoriesStore, ($pantry) => {
         if (!$pantry || !$pantry.categories) {
             return [];
         }
@@ -373,6 +283,59 @@
     function goToRecipeDetails(recipeId) {
         goto(`/recipe/${recipeId}`);
     }
+
+    const saveIngredientDetails = async (): Promise<void> => {
+        const newItem = {
+            name: $selectedIngredient,
+            quantity: $weight,
+            measurement: $selectedMeasurement,
+            expiration_date: $expirationDate,
+            category: $category,
+            user_id: user_id,
+        };
+
+        if (
+            new Date(newItem.expiration_date).getTime() < new Date().getTime()
+        ) {
+            warningMessage.set("Please input a valid expiration date.");
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `http://localhost:4010/pantry/add?user_id=${user_id}`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(newItem),
+                },
+            );
+
+            const data = await response.json();
+
+            if (response.ok) {
+                console.log("Ingredient added successfully:", data);
+            } else {
+                console.error("Error adding ingredient:", data.error);
+            }
+
+            selectedIngredient.set("");
+            weight.set(0);
+            expirationDate.set("");
+            addManually.set(false);
+            category.set("");
+        } catch (error) {
+            console.error("Error saving ingredient:", error);
+        }
+    };
+
+    
+  onMount(() => {
+    fetchPantryItems();
+  });
+
 </script>
 
 <div class="container mx-auto mt-8 px-4 lg:px-6 text-center">
@@ -535,156 +498,155 @@
         </div>
     </div>
 
-
-<!-- Recipes Section -->
-<div class="flex flex-col space-y-8">
-    <div class="container mx-auto mt-8 px-4 lg:px-6 text-left">
-        <h3 class="text-2xl font-semibold mb-4">
-            Recipes with your expiring ingredients:
-        </h3>
-        {#if recipes.length > 0}
-            <div class="flex items-center space-x-4 overflow-x-auto">
-                <button
-                    on:click={previousRecipes1}
-                    class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100"
-                >
-                    <svg
-                        class="w-4 h-4"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+    <!-- Recipes Section -->
+    <div class="flex flex-col space-y-8">
+        <div class="container mx-auto mt-8 px-4 lg:px-6 text-left">
+            <h3 class="text-2xl font-semibold mb-4">
+                Recipes with your expiring ingredients:
+            </h3>
+            {#if recipes.length > 0}
+                <div class="flex items-center space-x-4 overflow-x-auto">
+                    <button
+                        on:click={previousRecipes1}
+                        class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100"
                     >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M15 19l-7-7 7-7"
-                        />
-                    </svg>
-                </button>
-                <div class="flex space-x-4">
-                    {#each recipes.slice(currentRecipeIndex1, currentRecipeIndex1 + visibleRecipeCount) as recipe}
-                        <div
-                            class="recipe-card border p-4 rounded-lg text-center shadow-md w-40"
+                        <svg
+                            class="w-4 h-4"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
                         >
-                            <img
-                                src={recipe.image}
-                                alt={recipe.title}
-                                class="w-full h-24 object-cover rounded-md mb-2"
-                                on:error={handleImageError}
-                                on:click={() => goToRecipeDetails(recipe.id)}
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M15 19l-7-7 7-7"
                             />
-                            <p class="font-semibold text-lg mb-2">
-                                {recipe.title}
-                            </p>
-                        </div>
-                    {/each}
-                </div>
-                <button
-                    on:click={nextRecipes1}
-                    class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100"
-                >
-                    <svg
-                        class="w-4 h-4"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+                        </svg>
+                    </button>
+                    <div class="flex space-x-4">
+                        {#each recipes.slice(currentRecipeIndex1, currentRecipeIndex1 + visibleRecipeCount) as recipe}
+                            <div
+                                class="recipe-card border p-4 rounded-lg text-center shadow-md w-40"
+                            >
+                                <img
+                                    src={recipe.image}
+                                    alt={recipe.title}
+                                    class="w-full h-24 object-cover rounded-md mb-2"
+                                    on:error={handleImageError}
+                                    on:click={() =>
+                                        goToRecipeDetails(recipe.id)}
+                                />
+                                <p class="font-semibold text-lg mb-2">
+                                    {recipe.title}
+                                </p>
+                            </div>
+                        {/each}
+                    </div>
+                    <button
+                        on:click={nextRecipes1}
+                        class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100"
                     >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M9 5l7 7-7 7"
-                        />
-                    </svg>
-                </button>
-            </div>
-        {:else}
-            <p class="text-gray-600">
-                No recipes found for your expiring ingredients. Try adding more
-                items to your pantry.
-            </p>
-        {/if}
-    </div>
-
-    <!-- Seasonal Recipes Section -->
-    <div class="container mx-auto mt-8 px-4 lg:px-6 text-left">
-        <h3 class="text-2xl font-semibold mb-4">Seasonal Recipes:</h3>
-        {#if seasonalRecipes.length > 0}
-            <div class="flex items-center space-x-4 overflow-x-auto">
-                <button
-                    on:click={previousRecipes2}
-                    class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100"
-                >
-                    <svg
-                        class="w-4 h-4"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M15 19l-7-7 7-7"
-                        />
-                    </svg>
-                </button>
-                <div class="flex space-x-4">
-                    {#each seasonalRecipes.slice(currentRecipeIndex2, currentRecipeIndex2 + visibleRecipeCount) as recipe}
-                        <div
-                            class="recipe-card border p-4 rounded-lg text-center shadow-md w-40"
+                        <svg
+                            class="w-4 h-4"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
                         >
-                            <img
-                                src={recipe.image}
-                                alt={recipe.title}
-                                class="w-full h-24 object-cover rounded-md mb-2"
-                                on:error={handleImageError}
-                                on:click={() => goToRecipeDetails(recipe.id)}
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M9 5l7 7-7 7"
                             />
-                            <p class="font-semibold text-lg mb-2">
-                                {recipe.title}
-                            </p>
-                        </div>
-                    {/each}
+                        </svg>
+                    </button>
                 </div>
-                <button
-                    on:click={nextRecipes2}
-                    class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100"
-                >
-                    <svg
-                        class="w-4 h-4"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+            {:else}
+                <p class="text-gray-600">
+                    No recipes found for your expiring ingredients. Try adding
+                    more items to your pantry.
+                </p>
+            {/if}
+        </div>
+
+        <!-- Seasonal Recipes Section -->
+        <div class="container mx-auto mt-8 px-4 lg:px-6 text-left">
+            <h3 class="text-2xl font-semibold mb-4">Seasonal Recipes:</h3>
+            {#if seasonalRecipes.length > 0}
+                <div class="flex items-center space-x-4 overflow-x-auto">
+                    <button
+                        on:click={previousRecipes2}
+                        class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100"
                     >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M9 5l7 7-7 7"
-                        />
-                    </svg>
-                </button>
-            </div>
-        {:else}
-            <p class="text-gray-600">No seasonal recipes available.</p>
-        {/if}
-    </div>
+                        <svg
+                            class="w-4 h-4"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M15 19l-7-7 7-7"
+                            />
+                        </svg>
+                    </button>
+                    <div class="flex space-x-4">
+                        {#each seasonalRecipes.slice(currentRecipeIndex2, currentRecipeIndex2 + visibleRecipeCount) as recipe}
+                            <div
+                                class="recipe-card border p-4 rounded-lg text-center shadow-md w-40"
+                            >
+                                <img
+                                    src={recipe.image}
+                                    alt={recipe.title}
+                                    class="w-full h-24 object-cover rounded-md mb-2"
+                                    on:error={handleImageError}
+                                    on:click={() =>
+                                        goToRecipeDetails(recipe.id)}
+                                />
+                                <p class="font-semibold text-lg mb-2">
+                                    {recipe.title}
+                                </p>
+                            </div>
+                        {/each}
+                    </div>
+                    <button
+                        on:click={nextRecipes2}
+                        class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100"
+                    >
+                        <svg
+                            class="w-4 h-4"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M9 5l7 7-7 7"
+                            />
+                        </svg>
+                    </button>
+                </div>
+            {:else}
+                <p class="text-gray-600">No seasonal recipes available.</p>
+            {/if}
+        </div>
     </div>
 </div>
 
-<!-- Add Ingredients Manually -->
 {#if $addManually}
     <div
         class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
     >
         <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full relative">
-            <!-- Warning Popup -->
             {#if $warningMessage}
                 <div
                     class="absolute inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
@@ -708,30 +670,26 @@
                 </div>
             {/if}
             <h2 class="text-2xl font-bold text-green-600 mb-4">
-                {#if $addManually}
-                    Add an Ingredient
-                {/if}
+                Add an Ingredient
             </h2>
-            {#if $addManually}
-                <div class="mb-4">
-                    <select
-                        bind:value={$category}
-                        class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
-                    >
-                        <option value="">Select a category</option>
-                        {#each categories as category}
-                            <option value={category}>{category}</option>
-                        {/each}
-                    </select>Category
-                </div>
-                <div class="mb-4">
-                    <input
-                        type="string"
-                        bind:value={$selectedIngredient}
-                        class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
-                    />Name
-                </div>
-            {/if}
+            <div class="mb-4">
+                <select
+                    bind:value={$category}
+                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+                >
+                    <option value="">Select a category</option>
+                    {#each categories as category}
+                        <option value={category}>{category}</option>
+                    {/each}
+                </select>Category
+            </div>
+            <div class="mb-4">
+                <input
+                    type="string"
+                    bind:value={$selectedIngredient}
+                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+                />Name
+            </div>
             <div class="mb-4">
                 <input
                     type="number"
@@ -758,9 +716,7 @@
             </div>
             <div class="flex justify-end space-x-4">
                 <button
-                    on:click={() => {
-                        addManually.set(false);
-                    }}
+                    on:click={() => addManually.set(false)}
                     class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
                 >
                     Cancel
@@ -774,7 +730,6 @@
             </div>
         </div>
     </div>
-    
 {/if}
 
 <style>

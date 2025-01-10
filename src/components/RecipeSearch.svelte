@@ -15,7 +15,6 @@
     let weight = writable<number>(0);
     let selectedMeasurement = writable<string>("grams");
     let expirationDate = writable<string>("");
-    let ingredient = writable<string>("");
     const measurementUnits = ["grams", "milliliters", "pieces"];
 
     // Subscribe to the store to get pantry data
@@ -45,6 +44,12 @@
     let currentRecipeIndex2 = 0;
 
     $: username = $authStore.user?.username || "Guest";
+
+    authStore.subscribe((state) => {
+        console.log("Auth store state in home page: ", state);
+        user_id = state.user?.id || 1;
+        console.log("user id is: ", user_id);
+    });
 
     const searchRecipes = async () => {
         if (!selectedIngredients.length) {
@@ -77,6 +82,37 @@
             console.error("Error fetching pantry items:", error);
         }
     }
+
+    const removeIngredient = async (name): Promise<void> => {
+        try {
+            const response = await fetch(
+                `http://localhost:4010/pantry/delete/${name}?user_id=${user_id}`,
+                {
+                    method: "DELETE",
+                },
+            );
+
+            const data = await response.json();
+
+            if (response.ok) {
+                console.log("Ingredient removed successfully:", data);
+
+                // Remove the ingredient from the pantry array in the frontend
+                pantry = pantry.filter((item) => item.name !== name);
+                pantryStore.set(pantry); // Update the store with the new array
+
+                console.log("Updated pantry in frontend:", pantry);
+            } else {
+                warningMessage.set(
+                    `Error removing ingredient: ${name}. ${data.error}`,
+                );
+            }
+        } catch (error) {
+            warningMessage.set(
+                `Error removing ingredient: ${name}. ${error.message}`,
+            );
+        }
+    };
 
     async function checkExpiredIngredients() {
         const now = new Date().getTime();
@@ -326,16 +362,18 @@
             expirationDate.set("");
             addManually.set(false);
             category.set("");
+            fetchPantryItems();
         } catch (error) {
             console.error("Error saving ingredient:", error);
         }
     };
 
-    
-  onMount(() => {
-    fetchPantryItems();
-  });
-
+    onMount(() => {
+        fetchPantryItems();
+        nearestExpiringIngredients.subscribe((value) => {
+            console.log("Nearest expiring ingredients:", value);
+        });
+    });
 </script>
 
 <div class="container mx-auto mt-8 px-4 lg:px-6 text-center">
@@ -444,31 +482,37 @@
             <div class="flex items-center space-x-4 h-60 overflow-x-auto">
                 {#each $nearestExpiringIngredients.slice(currentIngredientIndex, currentIngredientIndex + visibleIngredientCount) as item}
                     {#if (new Date(item.expiration_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24) <= 3}
-                        <div class="flex flex-col items-center space-y-2">
-                            <div
-                                class="bg-gray-200 w-20 h-20 rounded-full flex items-center justify-center"
-                            >
-                                <img
-                                    src="/fridge-solid-24.png"
-                                    alt={item.name}
-                                    class="w-12 h-12 object-cover"
-                                />
-                            </div>
-                            <span class="text-gray-700 text-sm"
-                                >{item.name}</span
-                            >
-                            <span class="text-gray-500 text-xs"
-                                >Weight: {item.quantity}g</span
-                            >
-                            <span class="text-gray-500 text-xs"
-                                >Expires: {item.expiration_date}</span
-                            >
-                            {#if (new Date(item.expiration_date).getTime() - new Date().getTime()) / (1000 * 60 * 60) <= 24}
-                                <span class="text-red-500 text-xs"
-                                    >Expiring today!</span
-                                >
-                            {/if}
-                        </div>
+                    <div class="flex flex-col items-center space-y-2">
+                        <div
+                        class="bg-gray-200 w-16 h-16 rounded-full flex items-center justify-center"
+                      >
+                      <img
+                      src="/fridge-solid-24.png"
+                      alt={item.name}
+                      class="w-10 h-10 object-cover"
+                    />
+                      </div>
+                        <!-- Ingredient Name -->
+                        <span class="text-gray-700 text-sm">{item.name}</span>
+                        <!-- Ingredient Weight and Measurement -->
+                        <span class="text-gray-500 text-xs">
+                          {item.quantity}
+                          {#if item.measurement === "grams"}
+                            g
+                          {:else if item.measurement === "milliliters"}
+                            ml
+                          {:else if item.measurement === "pieces"}
+                            pcs
+                          {/if}
+                        </span>
+                        <!-- Ingredient Expiration Date -->
+                        <span class="text-gray-500 text-xs"
+                          >Expires: {item.expiration_date}</span
+                        >
+                        {#if (new Date(item.expiration_date).getTime() - new Date().getTime()) / (1000 * 60 * 60) <= 24}
+                          <span class="text-red-500 text-xs">Expiring today!</span>
+                        {/if}
+                    </div>
                     {/if}
                 {/each}
             </div>

@@ -36,6 +36,8 @@
     let selectedIngredients: string[] = [];
     let recipes: any[] = [];
     let seasonalRecipes: any[] = [];
+    // Object to track the favorites status of each recipe
+    let favoriteStates: { [key: string]: boolean } = {};
     let username = "";
     let user_id = 1;
 
@@ -274,47 +276,188 @@
         }
     }
 
-    // Fetch seasonal recipes
-    onMount(async () => {
+    // // Fetch seasonal recipes
+    // onMount(async () => {
+    //     try {
+    //         const month = new Date().getMonth() + 1;
+    //         let seasonalIngredient = "";
+
+    //         if (month >= 3 && month <= 5) {
+    //             seasonalIngredient = "asparagus";
+    //         } else if (month >= 6 && month <= 8) {
+    //             seasonalIngredient = "tomato";
+    //         } else if (month >= 9 && month <= 11) {
+    //             seasonalIngredient = "pumpkin";
+    //         } else {
+    //             seasonalIngredient = "potato";
+    //         }
+
+    //         console.log(
+    //             "Fetching seasonal recipes with ingredient:",
+    //             seasonalIngredient,
+    //         );
+    //         const response = await fetch(
+    //             `https://api.spoonacular.com/recipes/findByIngredients?ingredients=${seasonalIngredient}&number=8&apiKey=${API_KEY}`,
+    //         );
+    //         if (response.ok) {
+    //             const fetchedRecipes = await response.json();
+    //             seasonalRecipes = fetchedRecipes.map((recipe) => ({
+    //                 id: recipe.id,
+    //                 title: recipe.title,
+    //                 image: recipe.image,
+    //             }));
+    //             console.log("Fetched seasonal recipes:", seasonalRecipes);
+    //         } else {
+    //             console.error(
+    //                 "Failed to fetch seasonal recipes:",
+    //                 response.statusText,
+    //             );
+    //         }
+    //     } catch (error) {
+    //         console.error("Error fetching seasonal recipes:", error);
+    //     }
+    // });
+
+ // Función para verificar el estado de favorito de una receta
+ async function checkFavoriteStatus(recipe_id: string) {
+        try {
+            const response = await fetch(
+                `http://localhost:3012/check-favorite/${recipe_id}?user_id=${user_id}`
+            );
+
+            if (response.ok) {
+                const data = await response.json();
+                favoriteStates[recipe_id] = data.isFavorite;
+            } else {
+                console.error("Error al verificar el estado de favorito");
+            }
+        } catch (error) {
+            console.error("Error al verificar el estado de favorito:", error);
+        }
+    }
+
+    // Alternar el estado de favorito para una receta específica
+ export async function toggleFavorite(recipe_id: string) {
+        if (favoriteStates[recipe_id]) {
+            const response = await fetch(
+                `http://localhost:3012/favorites/${recipe_id}`,
+                {
+                    method: "DELETE",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ user_id }),
+                }
+            );
+
+            if (response.ok) {
+                alert("This recipe is removed from favorites");
+                favoriteStates[recipe_id] = false;
+            } else {
+                const error = await response.json();
+                alert(`Failed to remove from favorites: ${error.error}`);
+            }
+        } else {
+            const response = await fetch("http://localhost:3012/favorites", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ recipe_id, user_id }),
+            });
+
+            if (response.ok) {
+                alert("This recipe is added to favorites");
+                favoriteStates[recipe_id] = true;
+            } else {
+                const error = await response.json();
+                alert(`Failed to add to favorites: ${error.error}`);
+            }
+        }
+
+        checkFavoriteStatus(recipe_id); // Actualizar el estado después de cambiarlo
+    }
+
+
+ // Ejecutar al montar el componente
+ onMount(async () => {
+        await loadSeasonalRecipes();
+        for (const recipe of seasonalRecipes) {
+            await checkFavoriteStatus(recipe.idMeal);
+        }
+    });
+
+// Función para cargar recetas estacionales
+async function loadSeasonalRecipes() {
         try {
             const month = new Date().getMonth() + 1;
-            let seasonalIngredient = "";
+            let seasonalTag = "";
 
             if (month >= 3 && month <= 5) {
-                seasonalIngredient = "asparagus";
+                seasonalTag = "asparagus"; // Primavera
             } else if (month >= 6 && month <= 8) {
-                seasonalIngredient = "tomato";
+                seasonalTag = "salad"; // Verano
             } else if (month >= 9 && month <= 11) {
-                seasonalIngredient = "pumpkin";
+                seasonalTag = "pumpkin"; // Otoño
             } else {
-                seasonalIngredient = "potato";
+                seasonalTag = "beef"; // Invierno
             }
 
-            console.log(
-                "Fetching seasonal recipes with ingredient:",
-                seasonalIngredient,
+            const seasonalResponse = await fetch(
+                `https://www.themealdb.com/api/json/v1/1/filter.php?i=${seasonalTag}`
             );
-            const response = await fetch(
-                `https://api.spoonacular.com/recipes/findByIngredients?ingredients=${seasonalIngredient}&number=8&apiKey=${API_KEY}`,
-            );
-            if (response.ok) {
-                const fetchedRecipes = await response.json();
-                seasonalRecipes = fetchedRecipes.map((recipe) => ({
-                    id: recipe.id,
-                    title: recipe.title,
-                    image: recipe.image,
-                }));
-                console.log("Fetched seasonal recipes:", seasonalRecipes);
+
+            if (seasonalResponse.ok) {
+                const seasonalData = await seasonalResponse.json();
+                let seasonalRecipesSet = new Set();
+
+                for (const meal of seasonalData.meals) {
+                    try {
+                        const mealResponse = await fetch(
+                            `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal.idMeal}`
+                        );
+                        if (mealResponse.ok) {
+                            const mealData = await mealResponse.json();
+                            if (
+                                mealData.meals &&
+                                mealData.meals[0]?.strInstructions
+                            ) {
+                                seasonalRecipesSet.add(
+                                    JSON.stringify(mealData.meals[0])
+                                );
+                            }
+                        } else {
+                            console.error(
+                                "Error getting detailed seasonal recipe information:",
+                                meal.idMeal,
+                                mealResponse.statusText
+                            );
+                        }
+                    } catch (error) {
+                        console.error(
+                            "Error getting detailed seasonal recipe information:",
+                            meal.idMeal,
+                            error
+                        );
+                    }
+                }
+
+                seasonalRecipes = Array.from(seasonalRecipesSet).map(
+                    (recipeStr) => JSON.parse(recipeStr)
+                );
             } else {
                 console.error(
-                    "Failed to fetch seasonal recipes:",
-                    response.statusText,
+                    "Error getting seasonal recipes:",
+                    seasonalResponse.statusText
                 );
             }
         } catch (error) {
-            console.error("Error fetching seasonal recipes:", error);
+            console.error("Error getting seasonal recipes:", error);
         }
-    });
+    }
+
+
+
+
+
+
+
 
     function goToRecipeDetails(recipeId) {
         goto(`/recipe/${recipeId}`);
@@ -656,6 +799,12 @@
                                 <p class="font-semibold text-lg mb-2">
                                     {recipe.title}
                                 </p>
+                                <img
+                        src={favoriteStates[recipe.idMeal] ? "/solid-heart.png" : "/blank-heart.png"}
+                        alt="Favorite"
+                        class="inline-block w-6 h-6 cursor-pointer ml-3"
+                        on:click={() => toggleFavorite(recipe.idMeal)}
+                    />
                             </div>
                         {/each}
                     </div>

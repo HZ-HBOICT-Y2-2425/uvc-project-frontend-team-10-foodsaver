@@ -91,7 +91,7 @@
         Logout
       </button>
     </div>
-    <div class="md:hidden">
+    <div class="md:hidden flex-1 flex justify-end">
       <button class="text-gray-800 focus:outline-none" on:click={toggleMenu}>
         <svg
           class="w-6 h-6"

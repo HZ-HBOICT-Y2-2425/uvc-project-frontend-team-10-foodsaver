@@ -49,7 +49,6 @@
           <img class="medal" src={leaderboard[1].medal} alt={`Medal for rank ${leaderboard[1].rank}`} />
           <span class="points">{leaderboard[1].points} CO2 liters</span>
           <div class="avatar-container">
-            <img src={leaderboard[1].avatar} alt={`${leaderboard[1].username}'s avatar`} />
             <p>{leaderboard[1].username}</p>
           </div>
           <div class="rank-circle">{leaderboard[1].rank}</div>
@@ -62,7 +61,6 @@
           <img class="medal" src={leaderboard[0].medal} alt={`Medal for rank ${leaderboard[0].rank}`} />
           <span class="points">{leaderboard[0].points} CO2 liters</span>
           <div class="avatar-container">
-            <img src={leaderboard[0].avatar} alt={`${leaderboard[0].username}'s avatar`} />
             <p>{leaderboard[0].username}</p>
           </div>
           <div class="rank-circle">{leaderboard[0].rank}</div>
@@ -75,7 +73,6 @@
           <img class="medal" src={leaderboard[2].medal} alt={`Medal for rank ${leaderboard[2].rank}`} />
           <span class="points">{leaderboard[2].points} CO2 liters</span>
           <div class="avatar-container">
-            <img src={leaderboard[2].avatar} alt={`${leaderboard[2].username}'s avatar`} />
             <p>{leaderboard[2].username}</p>
           </div>
           <div class="rank-circle">{leaderboard[2].rank}</div>
@@ -87,7 +84,6 @@
       {#each leaderboard.slice(3) as { rank, username, points, avatar }}
         <tr>
           <td>{rank}</td>
-          <td><img src={avatar} alt="avatar" /></td>
           <td>{username}</td>
           <td class="points">{points} CO2 liters</td>
         </tr>
@@ -96,38 +92,26 @@
   </div>
   
   <style>
-    /* (Maintains the style already defined, no changes were made here) */
     .leaderboard-container {
         max-width: 800px;
         margin: 0 auto;
         text-align: center;
+        font-family: Arial, sans-serif;
     }
-  
+
     .leaderboard-title {
-        font-size: 2rem;
+        font-size: 2.5rem;
         color: green;
         margin-bottom: 2rem;
     }
-  
+
     .podium {
         display: flex;
         justify-content: center;
         gap: 2rem;
         margin-bottom: 3rem;
-        font-family:
-            system-ui,
-            -apple-system,
-            BlinkMacSystemFont,
-            "Segoe UI",
-            Roboto,
-            Oxygen,
-            Ubuntu,
-            Cantarell,
-            "Open Sans",
-            "Helvetica Neue",
-            sans-serif;
     }
-  
+
     .podium-item {
         display: flex;
         flex-direction: column;
@@ -136,24 +120,25 @@
         border-radius: 10px;
         padding: 1rem;
         width: 120px;
+        background-color: #ecf0f1;
     }
-  
+
     .center-podium {
         transform: translateY(-20px);
     }
-  
+
     .medal {
         margin-bottom: 0.5rem;
         width: 40px;
         height: 40px;
     }
-  
+
     .points {
         font-size: 1.2rem;
-        color: rgb(115, 216, 229);
+        color: #16a085;
         margin: 0.5rem 0;
     }
-  
+
     .avatar-container {
         display: flex;
         flex-direction: column;
@@ -162,26 +147,26 @@
         border-radius: 8px;
         padding: 0.5rem;
     }
-  
+
     .avatar-container img {
         width: 80px;
         height: 80px;
         border-radius: 50%;
         margin-bottom: 0.5rem;
     }
-  
+
     .avatar-container p {
         font-size: 1rem;
         color: #333;
         margin: 0;
     }
-  
+
     .rank-circle {
         position: absolute;
         bottom: -15px;
         width: 30px;
         height: 30px;
-        background-color: #969595;
+        background-color: #7f8c8d;
         color: white;
         font-size: 1rem;
         display: flex;
@@ -190,25 +175,24 @@
         border-radius: 50%;
         border: 2px solid #fff;
     }
-  
+
     .ranking-table {
         width: 100%;
         margin-top: 1rem;
         border-collapse: collapse;
     }
-  
+
     .ranking-table tr {
         border-bottom: 1px solid #ccc;
     }
-  
+
     .ranking-table td {
         padding: 0.5rem;
         text-align: left;
     }
-  
+
     .ranking-table img {
         width: 40px;
         border-radius: 50%;
     }
   </style>
-  

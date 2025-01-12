@@ -128,11 +128,6 @@
         }
     }
 
-    // Fallback for broken image
-    const handleImageError = (event: Event) => {
-        const img = event.target as HTMLImageElement;
-        img.src = "/images/placeholder.png";
-    };
     // Recipe navigation functions for first section
     const previousRecipes1 = () => {
         if (currentRecipeIndex1 > 0) {
@@ -476,7 +471,6 @@ async function checkFavoritesForExpiringRecipes() {
                 <input
                     type="text"
                     bind:value={selectedIngredients}
-                    placeholder="Select ingredients from your pantry"
                     on:focus={() => (searchActive = true)}
                     class="w-full p-4 pr-12 rounded-md shadow-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
@@ -537,7 +531,7 @@ async function checkFavoritesForExpiringRecipes() {
             <!-- Left Arrow Button -->
             <button
                 on:click={previousIngredients}
-                class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed hidden sm:block"
                 disabled={currentIngredientIndex === 0}
             >
                 <svg
@@ -598,7 +592,7 @@ async function checkFavoritesForExpiringRecipes() {
             <!-- Right Arrow Button -->
             <button
                 on:click={nextIngredients}
-                class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed hidden sm:block"
                 disabled={currentIngredientIndex + visibleIngredientCount >=
                     $nearestExpiringIngredients.length}
             >
@@ -630,7 +624,7 @@ async function checkFavoritesForExpiringRecipes() {
                 <div class="flex items-center space-x-4 overflow-x-auto">
                     <button
                         on:click={previousRecipes1}
-                        class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100"
+                        class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100 hidden sm:block"
                     >
                         <svg
                             class="w-4 h-4"
@@ -650,31 +644,30 @@ async function checkFavoritesForExpiringRecipes() {
                     <div class="flex space-x-4">
                         {#each recipes.slice(currentRecipeIndex1, currentRecipeIndex1 + visibleRecipeCount) as recipe}
                             <div
-                                class="recipe-card border p-4 rounded-lg text-center shadow-md w-40"
+                                class="recipe-card border p-4 rounded-lg text-center shadow-md w-40 relative"
                             >
                                 <img
                                     src={recipe.image}
                                     alt={recipe.title}
                                     class="w-full h-24 object-cover rounded-md mb-2"
-                                    on:error={handleImageError}
                                     on:click={() =>
                                         goToRecipeDetails(recipe.id)}
                                 />
-                                <p class="font-semibold text-lg mb-2">
+                                <p class="font-semibold text-lg mb-3">
                                     {recipe.title}
                                 </p>
                                 <img
-                        src={favoriteStates[recipe.id] ? "/solid-heart.png" : "/blank-heart.png"}
-                        alt="Favorite"
-                        class="inline-block w-6 h-6 cursor-pointer ml-3"
-                        on:click={() => toggleFavorite(recipe.id)}
-                    />
+                                    src={favoriteStates[recipe.id] ? "/solid-heart.png" : "/blank-heart.png"}
+                                    alt="Favorite"
+                                    class="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-6 h-6 cursor-pointer"
+                                    on:click={() => toggleFavorite(recipe.id)}
+                                />
                             </div>
                         {/each}
                     </div>
                     <button
                         on:click={nextRecipes1}
-                        class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100"
+                        class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100 hidden sm:block"
                     >
                         <svg
                             class="w-4 h-4"
@@ -707,7 +700,7 @@ async function checkFavoritesForExpiringRecipes() {
                 <div class="flex items-center space-x-4 overflow-x-auto">
                     <button
                         on:click={previousRecipes2}
-                        class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100"
+                        class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100 hidden sm:block"
                     >
                         <svg
                             class="w-4 h-4"
@@ -727,13 +720,12 @@ async function checkFavoritesForExpiringRecipes() {
                     <div class="flex space-x-4">
                         {#each seasonalRecipes.slice(currentRecipeIndex2, currentRecipeIndex2 + visibleRecipeCount) as recipe}
                             <div
-                                class="recipe-card border p-4 rounded-lg text-center shadow-md w-40"
+                                class="recipe-card border p-4 rounded-lg text-center shadow-md w-40 relative"
                             >
                                 <img
                                     src={recipe.image}
                                     alt={recipe.title}
                                     class="w-full h-24 object-cover rounded-md mb-2"
-                                    on:error={handleImageError}
                                     on:click={() =>
                                         goToRecipeDetails(recipe.id)}
                                 />
@@ -741,17 +733,17 @@ async function checkFavoritesForExpiringRecipes() {
                                     {recipe.title}
                                 </p>
                                 <img
-                        src={favoriteStates[recipe.id] ? "/solid-heart.png" : "/blank-heart.png"}
-                        alt="Favorite"
-                        class="inline-block w-6 h-6 cursor-pointer ml-3"
-                        on:click={() => toggleFavorite(recipe.id)}
-                    />
+                                    src={favoriteStates[recipe.id] ? "/solid-heart.png" : "/blank-heart.png"}
+                                    alt="Favorite"
+                                    class="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-6 h-6 cursor-pointer"
+                                    on:click={() => toggleFavorite(recipe.id)}
+                                />
                             </div>
                         {/each}
                     </div>
                     <button
                         on:click={nextRecipes2}
-                        class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100"
+                        class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100 hidden sm:block"
                     >
                         <svg
                             class="w-4 h-4"

@@ -11,7 +11,6 @@
     convertToGrams,
     convertToMilliliters,
   } from "../../../utils/conversion.js";
-  import { API_KEY } from "../../../lib/index"; // Import the API key
 
   let user_id = 1;
   authStore.subscribe((state) => {
@@ -27,12 +26,9 @@
   let showModal = false;
   let pantry = [];
   let categories = [];
-  let savings =  [];
   let showIngredientModal = writable<boolean>(false);
-  let currentStepIndex = writable<number | null>(null);
   let amountUsed = writable<number>(0);
   let measurementUnit = writable<string>("grams");
-  let category = writable<string>("");
   let selectedIngredient = writable<string>("");
   let selectedIngredients: {
     [key: string]: { amount: number; measurement: string, category: string };
@@ -222,6 +218,11 @@
             continue;
           }
         } else {
+          if (
+            [
+              "pieces",
+            ].includes(details.measurement)
+        )
           newQuantity -= details.amount;
         }
 
@@ -398,9 +399,6 @@
         warningMessage.set(`Error removing ingredient: ${name}. ${data.error}`);
       }
     } catch (error) {
-      warningMessage.set(
-        `Error removing ingredient: ${name}. ${error.message}`,
-      );
     }
   };
 
@@ -699,18 +697,16 @@
           </div>
         {/each}
 
-        <!-- CO2 Calculation Button -->
+        <!-- CO2 Calculation Button for desktop view -->
         <div
-          class="recipe-card mt-3 p-4 bg-white border border-gray-300 rounded-lg text-center"
+          class="recipe-card mt-3 p-4 bg-white border border-gray-300 rounded-lg text-center hidden lg:block"
         >
           <p class="text-lg font-semibold mb-4">
             If you finished this recipe, click below to calculate your CO2
             reduction.
           </p>
           <button
-            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full {isButtonDisabled
-              ? 'disabled'
-              : ''}"
+            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full {isButtonDisabled ? 'disabled' : ''}"
             on:click={updateIngredientsAndIncrementRecipeCount}
             disabled={isButtonDisabled}
           >
@@ -815,6 +811,23 @@
             </div>
           </div>
         {/each}
+
+        <!-- CO2 Calculation Button for phone view -->
+        <div
+          class="recipe-card mt-3 p-4 bg-white border border-gray-300 rounded-lg text-center lg:hidden"
+        >
+          <p class="text-lg font-semibold mb-4">
+            If you finished this recipe, click below to calculate your CO2
+            reduction.
+          </p>
+          <button
+            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full {isButtonDisabled ? 'disabled' : ''}"
+            on:click={updateIngredientsAndIncrementRecipeCount}
+            disabled={isButtonDisabled}
+          >
+            Complete
+          </button>
+        </div>
       </div>
     </section>
   </div>
@@ -999,12 +1012,6 @@
     </div>
   </div>
 {/if}
-
-<!-- Display savings -->
-<div class="savings-info">
-  <p>Money Saved: {savings.money_saved}</p>
-  <p>CO2 Saved: {savings.co2_saved}</p>
-</div>
 
 <style>
   /* Add your custom styles here */

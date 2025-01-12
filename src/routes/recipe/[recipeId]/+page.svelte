@@ -298,6 +298,9 @@
 
       // Update savings in the database
       await updateSavings(user_id, totalMoneySaved, totalCo2Saved);
+
+      // Redirect to profile page
+      goto('/profile');
     } catch (error) {
       console.error(
         "Error updating ingredients or incrementing recipe count:",

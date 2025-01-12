@@ -14,7 +14,7 @@
           leaderboard = data.data.map((user, index) => ({
             rank: index + 1,
             username: user.username,
-            points: user.email, // We change points by email, as requested
+            moneySaved: user.money_saved, // Display money saved for each user
             avatar: `https://cdn-icons-png.flaticon.com/512/2945/294551${index % 6 + 1}.png`, // Random avatar
             medal:
               index === 0
@@ -48,7 +48,7 @@
       {#if leaderboard.length > 1}
         <div class="podium-item">
           <img class="medal" src={leaderboard[1].medal} alt={`Medal for rank ${leaderboard[1].rank}`} />
-          <span class="points">{leaderboard[1].points} €</span>
+          <span class="points">{leaderboard[1].moneySaved} €</span>
           <div class="avatar-container">
             <p>{leaderboard[1].username}</p>
           </div>
@@ -60,7 +60,7 @@
       {#if leaderboard.length > 0}
         <div class="podium-item center-podium">
           <img class="medal" src={leaderboard[0].medal} alt={`Medal for rank ${leaderboard[0].rank}`} />
-          <span class="points">{leaderboard[0].points} €</span>
+          <span class="points">{leaderboard[0].moneySaved} €</span>
           <div class="avatar-container">
             <p>{leaderboard[0].username}</p>
           </div>
@@ -72,7 +72,7 @@
       {#if leaderboard.length > 2}
         <div class="podium-item">
           <img class="medal" src={leaderboard[2].medal} alt={`Medal for rank ${leaderboard[2].rank}`} />
-          <span class="points">{leaderboard[2].points} €</span>
+          <span class="points">{leaderboard[2].moneySaved} €</span>
           <div class="avatar-container">
             <p>{leaderboard[2].username}</p>
           </div>
@@ -82,11 +82,11 @@
     </div>
     
     <table class="ranking-table">
-      {#each leaderboard.slice(3) as { rank, username, points, avatar }}
+      {#each leaderboard.slice(3) as { rank, username, moneySaved}}
         <tr>
           <td>{rank}</td>
           <td>{username}</td>
-          <td class="points">{points} €</td>
+          <td class="points">{moneySaved} €</td>
         </tr>
       {/each}
     </table>

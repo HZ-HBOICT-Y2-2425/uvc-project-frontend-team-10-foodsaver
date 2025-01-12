@@ -216,7 +216,7 @@
 
 <div class="profile-page flex flex-col items-center bg-gray-100 py-8 px-4 sm:px-8">
   <header class="w-full max-w-5xl text-center mb-8">
-    <h1 class="text-4xl font-bold text-green-600">Hello, <span class="italic">{username}!</span>!</h1>
+    <h1 class="text-4xl font-bold text-green-600">Hello, <span class="italic">{username}!</span></h1>
   </header>
 
   <section class="w-full max-w-5xl flex flex-col sm:flex-row items-start">
@@ -300,7 +300,7 @@
             <p class="text-2xl font-bold text-green-600">{totalMoneySaved}€</p>
           </div>
           <div class="bg-blue-100 p-4 rounded-lg shadow-md">
-            <h3 class="text-lg font-semibold text-blue-800">CO2 Saved</h3>
+            <h3 class="text-lg font-semibold text-blue-800">CO2 Reduced</h3>
             <p class="text-2xl font-bold text-blue-600">{totalCo2Saved}kg</p>
           </div>
         </div>
@@ -321,84 +321,28 @@
           {/each}
         </div>
       </div>
+
+      <!-- Leaderboards Section -->
+      <div class="mt-8 bg-white shadow-lg rounded-lg p-6 text-center flex-3">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Leaderboards</h2>
+        <div class="flex justify-center space-x-4">
+          <button
+            class="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring focus:ring-green-300"
+            on:click={() => goto("/money-leaderboard")}
+          >
+            Money Saved Leaderboard
+          </button>
+          <button
+            class="px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring focus:ring-blue-300"
+            on:click={() => goto("/co2-leaderboard")}
+          >
+            CO2 Reduced Leaderboard
+          </button>
+        </div>
+      </div>
     </div>
   </section>
 </div>  
-
-<div class="ml-4 mr-4">
-  <button
-      class="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring focus:ring-green-300"
-      on:click={() => goto("/favorite")}
-  >
-      Favourites
-  </button>
-
-
-  <button
-    class="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring focus:ring-green-300"
-    on:click={() => goto("/community")}
-  >
-    Community
-  </button>
-
-
-  <button
-    class="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring focus:ring-green-300"
-    on:click={() => goto("/money-leaderboard")}
-  >
-    Leaderboard
-  </button>
-</div>
-
-{#if isLoading}
-  <p>Loading your shopping lists...</p>
-{:else if savedShoppingLists.length > 0}
-  <ul class="list-disc list-inside">
-    {#each savedShoppingLists as list}
-      <li class="cursor-pointer">
-        <h3 
-          class="text-lg font-semibold hover:bg-gray-100 p-2 rounded"
-          on:click={() => handleSelectList(list)} 
-        >
-          {list.recipe_name || `Shopping List ${list.id}`}
-        </h3>
-      </li>
-    {/each}
-  </ul>
-
-  {#if selectedList}
-    <div class="mt-4 p-4 bg-white shadow-lg rounded-md">
-      <div class="flex justify-between items-center">
-        <h3 class="text-xl font-semibold">{selectedList.recipe_name || `Shopping List ${selectedList.id}`}</h3>
-        <button
-          class="text-red-500 font-bold"
-          on:click={closeSelectedList}
-        >
-          Close
-        </button>
-      </div>
-
-      {#if selectedList.recipe_image}
-        <img
-          src={selectedList.recipe_image}
-          alt={selectedList.recipe_name}
-          class="w-64 h-64 object-cover rounded-md mt-4 mx-auto"
-        />
-      {:else}
-        <p class="text-gray-500 mt-4 text-center">No image available</p>
-      {/if}
-
-      <ul class="list-none mt-2">
-        {#each selectedList.items as ingredient}
-          <li class="text-gray-700">{ingredient.name} - {ingredient.quantity}g</li>
-        {/each}
-      </ul>
-    </div>
-  {/if}
-{:else}
-  <p>No saved shopping lists yet.</p>
-{/if}
-
 <style>
   .cursor-pointer:hover {
     background-color: #f7fafc;

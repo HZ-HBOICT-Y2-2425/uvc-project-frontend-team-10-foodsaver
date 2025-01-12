@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import { authStore } from '../../lib/stores/authStore';
   import { writable } from 'svelte/store';
+  import { page } from "$app/stores";
 
   let newUsername = '';
   let oldPassword = '';
@@ -22,6 +23,7 @@
   let isButtonDisabled = false; 
   let totalCo2Saved = 0;
   let totalMoneySaved = 0;
+  let showCongrats = false;
 
   $: username = $authStore.user?.username || 'Guest';
 
@@ -44,6 +46,16 @@
       goto('/login');
     }
     fetchSavings();
+  });
+
+  onMount(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('congrats') === 'true') {
+      showCongrats = true;
+      setTimeout(() => {
+        showCongrats = false;
+      }, 5000); // Hide after 5 seconds
+    }
   });
 
   async function updateUsername() {
@@ -343,6 +355,26 @@
     </div>
   </section>
 </div>  
+
+{#if showCongrats}
+  <div
+    class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
+  >
+    <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
+      <h2 class="text-2xl font-bold text-green-600 mb-4">Congratulations</h2>
+      <p class="text-gray-700 mb-4">Congratulations on completing a recipe!</p>
+      <div class="flex justify-end">
+        <button
+          on:click={() => showCongrats = false}
+          class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <style>
   .cursor-pointer:hover {
     background-color: #f7fafc;

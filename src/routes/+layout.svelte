@@ -81,8 +81,8 @@
       <a href="/pantry" class="text-gray-800 hover:text-green-500 text-lg"
         >My Pantry</a
       >
-      <a href="/money-leaderboard" class="text-gray-800 hover:text-green-500 text-lg"
-        >Leaderboards</a
+      <a href="/favorite" class="text-gray-800 hover:text-green-500 text-lg"
+        >Favorite Recipes</a
       >
       <a href="/shopping-list" class="text-gray-800 hover:text-green-500 text-lg"
         >Shopping Lists</a
@@ -120,37 +120,21 @@
 
 <!-- Mobile Navigation Menu -->
 {#if isMenuOpen && !isLoginOrRegister}
-  <div id="mobile-menu" class="md:hidden w-full bg-white shadow-md p-4">
-    <a href="/" class="block text-gray-800 hover:text-green-500 text-lg mb-2"
-      >Home</a
-    >
-    <a
-      href="/tips"
-      class="block text-gray-800 hover:text-green-500 text-lg mb-2"
-      >Tips & Tricks</a
-    >
-    <a
-      href="/pantry"
-      class="block text-gray-800 hover:text-green-500 text-lg mb-2">My Pantry</a
-    >
-    <a
-    href="/co2-leaderboard"
-    class="block text-gray-800 hover:text-green-500 text-lg mb-2">Leaderboards</a
-  >
-  <a
-    href="/shopping-list"
-    class="block text-gray-800 hover:text-green-500 text-lg mb-2">Shopping Lists</a
-  >
-    <a
-      href="/profile"
-      class="block text-gray-800 hover:text-green-500 text-lg mb-2">Profile</a
-    >
-    <button
-      on:click={logout}
-      class="block text-gray-800 hover:text-red-500 text-lg border border-gray-300 rounded px-3 py-1 mt-2"
-    >
-      Logout
-    </button>
+  <div id="mobile-menu" class="md:hidden w-full bg-white shadow-md p-4 flex flex-col items-start">
+    <a href="/" class="block text-gray-800 hover:text-green-500 text-lg mb-2">Home</a>
+    <a href="/tips" class="block text-gray-800 hover:text-green-500 text-lg mb-2">Tips & Tricks</a>
+    <a href="/pantry" class="block text-gray-800 hover:text-green-500 text-lg mb-2">My Pantry</a>
+    <a href="/favorite" class="block text-gray-800 hover:text-green-500 text-lg mb-2">Favorite Recipes</a>
+    <a href="/shopping-list" class="block text-gray-800 hover:text-green-500 text-lg mb-2">Shopping Lists</a>
+    <a href="/profile" class="block text-gray-800 hover:text-green-500 text-lg mb-2">Profile</a>
+    <div class="w-full flex justify-end mt-2">
+      <button
+        on:click={logout}
+        class="text-gray-800 hover:text-red-500 text-lg border border-gray-300 rounded px-3 py-1"
+      >
+        Logout
+      </button>
+    </div>
   </div>
 {/if}
 

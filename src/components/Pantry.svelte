@@ -66,6 +66,7 @@
         categoriesStore.set(data.categories.map((cat) => cat.category));
         pantryStore.set(pantry);
         checkExpiredIngredients();
+        groupIngredientsByCategory(); // Group ingredients by category
       } else {
         console.error("Error fetching pantry items:", data.error);
       }
@@ -86,9 +87,31 @@
     }
   }
 
+  // Group ingredients by category
+  let categorizedPantry = {};
+  let collapsedCategories = writable<Record<string, boolean>>({});
+
+  function groupIngredientsByCategory() {
+    categorizedPantry = pantry.reduce((acc, item) => {
+      if (!acc[item.category]) {
+        acc[item.category] = [];
+      }
+      acc[item.category].push(item);
+      return acc;
+    }, {});
+  }
+
+  function toggleCategory(category: string) {
+    collapsedCategories.update((state) => {
+      state[category] = !state[category];
+      return state;
+    });
+  }
+
   // Fetch pantry items from backend when component mounts
   onMount(() => {
     fetchPantryItems(); // Fetch pantry items from the backend
+    groupIngredientsByCategory(); // Group ingredients by category
   });
 
   // Save new ingredient details (Add item to backend)
@@ -215,6 +238,7 @@
         // Remove the ingredient from the pantry array in the frontend
         pantry = pantry.filter((item) => item.name !== name);
         pantryStore.set(pantry); // Update the store with the new array
+        groupIngredientsByCategory(); // Update the categorized pantry
 
         console.log("Updated pantry in frontend:", pantry);
       } else {
@@ -268,44 +292,58 @@
     </div>
   </div>
 
-  <!-- Pantry Ingredients List (Circular) -->
-  <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 mb-6">
-    {#each pantry as item, index (index)}
-      <div class="flex flex-col items-center space-y-2">
-        <!-- Ingredient Circle with Placeholder Image -->
-        <button
-          on:click={() => openEditIngredient(item)}
-          class="bg-gray-200 w-16 h-16 rounded-full flex items-center justify-center"
-        >
-          <img
-            src="/fridge-solid-24.png"
-            alt={item.name}
-            class="w-10 h-10 object-cover"
-          />
-        </button>
-        <!-- Ingredient Name -->
-        <span class="text-gray-700 text-sm">{item.name}</span>
-        <!-- Ingredient Weight and Measurement -->
-        <span class="text-gray-500 text-xs">
-          {item.quantity}
-          {#if item.measurement === "grams"}
-            g
-          {:else if item.measurement === "milliliters"}
-            ml
-          {:else if item.measurement === "pieces"}
-            pcs
-          {/if}
-        </span>
-        <!-- Ingredient Expiration Date -->
-        <span class="text-gray-500 text-xs"
-          >Expires: {item.expiration_date}</span
-        >
-        {#if (new Date(item.expiration_date).getTime() - new Date().getTime()) / (1000 * 60 * 60) <= 24}
-          <span class="text-red-500 text-xs">Expiring today!</span>
+  <!-- Pantry Ingredients List by Category -->
+  {#each Object.keys(categorizedPantry) as category}
+    <div class="mb-6">
+      <h3 class="text-xl font-bold text-green-600 mb-4 cursor-pointer" on:click={() => toggleCategory(category)}>
+        {category}
+        {#if $collapsedCategories[category]}
+          <span>▼</span>
+        {:else}
+          <span>▲</span>
         {/if}
-      </div>
-    {/each}
-  </div>
+      </h3>
+      {#if !$collapsedCategories[category]}
+        <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
+          {#each categorizedPantry[category] as item, index (index)}
+            <div class="flex flex-col items-center space-y-2">
+              <!-- Ingredient Circle with Placeholder Image -->
+              <button
+                on:click={() => openEditIngredient(item)}
+                class="bg-gray-200 w-16 h-16 rounded-full flex items-center justify-center"
+              >
+                <img
+                  src="/fridge-solid-24.png"
+                  alt={item.name}
+                  class="w-10 h-10 object-cover"
+                />
+              </button>
+              <!-- Ingredient Name -->
+              <span class="text-gray-700 text-sm">{item.name}</span>
+              <!-- Ingredient Weight and Measurement -->
+              <span class="text-gray-500 text-xs">
+                {item.quantity}
+                {#if item.measurement === "grams"}
+                  g
+                {:else if item.measurement === "milliliters"}
+                  ml
+                {:else if item.measurement === "pieces"}
+                  pcs
+                {/if}
+              </span>
+              <!-- Ingredient Expiration Date -->
+              <span class="text-gray-500 text-xs"
+                >Expires: {item.expiration_date}</span
+              >
+              {#if (new Date(item.expiration_date).getTime() - new Date().getTime()) / (1000 * 60 * 60) <= 24}
+                <span class="text-red-500 text-xs">Expiring today!</span>
+              {/if}
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </div>
+  {/each}
 </div>
 
 <!-- Add/Edit Ingredients Manually -->

@@ -1,7 +1,8 @@
-<script>
+<script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { authStore } from '../../lib/stores/authStore';
+  import { writable } from 'svelte/store';
 
   let newUsername = '';
   let oldPassword = '';
@@ -19,12 +20,15 @@
   let isLoading = true; // Loading state
   let selectedList = null; // Store the selected shopping list for display
   let isButtonDisabled = false; 
+  let totalCo2Saved = 0;
+  let totalMoneySaved = 0;
 
   $: username = $authStore.user?.username || 'Guest';
 
   authStore.subscribe(($authStore) => {
     token = $authStore.token;
     recipeCount = $authStore.recipeCount || 0;
+    user_id = $authStore.user?.id || null;
   });
 
   $: {
@@ -39,6 +43,7 @@
       console.log('No token found, redirecting to login...');
       goto('/login');
     }
+    fetchSavings();
   });
 
   async function updateUsername() {
@@ -112,6 +117,19 @@
     fetchShoppingLists();
   });
 
+  onMount(async () => {
+    const fetchedSavings = await fetchSavings();
+    console.log("Fetched savings:", fetchedSavings); // Log the fetched savings
+    if (fetchedSavings && fetchedSavings.data) {
+      totalCo2Saved = parseFloat(fetchedSavings.data.co2_saved) || 0;
+      totalMoneySaved = parseFloat(fetchedSavings.data.money_saved) || 0;
+      recipeCount = parseFloat(fetchedSavings.data.recipeCount) || 0;
+      console.log("Current savings:", totalCo2Saved, totalMoneySaved);
+    } else {
+      console.error("Failed to fetch current savings");
+    }
+  });
+
   // Function to fetch shopping lists from the backend
   async function fetchShoppingLists() {
     if (!user_id) {
@@ -174,6 +192,26 @@
   function closeSelectedList() {
     selectedList = null;
   }
+
+  const fetchSavings = async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:4000/api/users/${user_id}/savings`,
+      );
+      if (response.ok) {
+        const data = await response.json();
+        totalCo2Saved = data.co2_saved;
+        totalMoneySaved = data.money_saved;
+        return data;
+      } else {
+        console.error("Failed to fetch savings:", response.statusText);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching savings:", error);
+      return null;
+    }
+  };
 </script>
 
 <div class="profile-page flex flex-col items-center bg-gray-100 py-8 px-4 sm:px-8">
@@ -215,7 +253,7 @@
         <p class="text-green-500 mt-4">{successMessage}</p>
       {/if}
 
-      <div class="mt-8 w-full">
+      <div class="mt-8 w-full flex-1">
         <h2 class="text-xl font-semibold text-gray-800 mb-4">Change Password</h2>
         <form on:submit|preventDefault={changePassword} class="space-y-4">
           <div>
@@ -253,19 +291,35 @@
       </div>
     </div>
 
-    <div class="flex-grow mt-8 sm:mt-0 sm:ml-8 sm:w-1/4 w-full bg-white shadow-lg rounded-lg p-6 text-center">
-      <h2 class="text-2xl font-semibold text-gray-800 mb-4">Achievements</h2>
-      <div class="badge-container mt-4 flex flex-wrap justify-center gap-4">
-        {#each badges as badge}
-          <div class="relative group">
-            <img src={badge.image} alt="Achievement Badge" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full shadow-md" />
-            <div
-              class="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 px-3 py-1 rounded bg-gray-800 text-white text-sm opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              {badge.description}
-            </div>
+    <div class="flex-grow mt-8 sm:mt-0 sm:ml-8 sm:w-2/3 w-full flex flex-col">
+      <div class="bg-white shadow-lg rounded-lg p-6 text-center flex-2">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Your Savings</h2>
+        <div class="badge-container mt-4 flex flex-wrap justify-center gap-4">
+          <div class="bg-green-100 p-4 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold text-green-800">Money Saved</h3>
+            <p class="text-2xl font-bold text-green-600">{totalMoneySaved}€</p>
           </div>
-        {/each}
+          <div class="bg-blue-100 p-4 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold text-blue-800">CO2 Saved</h3>
+            <p class="text-2xl font-bold text-blue-600">{totalCo2Saved}kg</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-8 bg-white shadow-lg rounded-lg p-6 text-center flex-3">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Achievements</h2>
+        <div class="badge-container mt-4 flex flex-wrap justify-center gap-4">
+          {#each badges as badge}
+            <div class="relative group">
+              <img src={badge.image} alt="Achievement Badge" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full shadow-md" />
+              <div
+                class="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 px-3 py-1 rounded bg-gray-800 text-white text-sm opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                {badge.description}
+              </div>
+            </div>
+          {/each}
+        </div>
       </div>
     </div>
   </section>

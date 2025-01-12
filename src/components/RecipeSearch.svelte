@@ -426,6 +426,7 @@ async function checkFavoritesForExpiringRecipes() {
 
             if (response.ok) {
                 console.log("Ingredient added successfully:", data);
+                location.reload(); // Refresh the page
             } else {
                 console.error("Error adding ingredient:", data.error);
             }
@@ -435,7 +436,6 @@ async function checkFavoritesForExpiringRecipes() {
             expirationDate.set("");
             addManually.set(false);
             category.set("");
-            fetchPantryItems();
         } catch (error) {
             console.error("Error saving ingredient:", error);
         }

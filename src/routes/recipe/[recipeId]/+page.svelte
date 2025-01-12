@@ -147,12 +147,6 @@
   };
 
   const updateIngredientsAndIncrementRecipeCount = async (): Promise<void> => {
-    // Disable the button and start the timer
-    isButtonDisabled = true;
-    setTimeout(() => {
-      isButtonDisabled = false;
-    }, 1800000);
-
     let invalidIngredients = []; // Array to collect invalid ingredient names
     const token = $authStore.token;
 
@@ -217,14 +211,13 @@
             invalidIngredients.push(ingredientName);
             continue;
           }
-        } else {
-          if (
-            [
-              "pieces",
-            ].includes(details.measurement)
-        )
+        } else if (currentMeasurement === "pieces") {
+          if (details.measurement !== "pieces") {
+            invalidIngredients.push(ingredientName);
+            continue;
+          }
           newQuantity -= details.amount;
-        }
+        } 
 
         // Calculate CO2 and money saved
         const co2EmissionsPer1kg = categoryDetails?.co2_emissions_per_1kg;
@@ -273,6 +266,12 @@
         }
       }
 
+      if (invalidIngredients.length > 0) {
+        console.warn("Invalid ingredients:", invalidIngredients.join(", "));
+        warningMessage.set(`Invalid measurements for ingredients: ${invalidIngredients.join(", ")}`);
+        return; // Do not update savings if there are invalid ingredients
+      }
+
       // Increment the recipe count
       const response = await fetch(
         "http://localhost:4000/api/users/increment-recipe-count",
@@ -300,6 +299,12 @@
       // Update savings in the database
       await updateSavings(user_id, totalMoneySaved, totalCo2Saved);
 
+      // Set cooldown on the button
+      isButtonDisabled = true;
+      setTimeout(() => {
+        isButtonDisabled = false;
+      }, 1800000);
+
       // Redirect to profile page
       goto('/profile');
     } catch (error) {
@@ -307,10 +312,6 @@
         "Error updating ingredients or incrementing recipe count:",
         error,
       );
-    }
-
-    if (invalidIngredients.length > 0) {
-      console.warn("Invalid ingredients:", invalidIngredients.join(", "));
     }
   };
 
@@ -914,7 +915,7 @@
     >
       <div class="bg-white p-6 rounded-lg shadow-lg w-11/12 md:max-w-md">
         <h2 class="text-2xl font-bold text-green-600 mb-4">
-          Edit {$selectedIngredient}
+          Edit Ingredient
         </h2>
         <div class="mb-4">
           <input

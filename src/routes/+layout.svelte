@@ -81,6 +81,12 @@
       <a href="/pantry" class="text-gray-800 hover:text-green-500 text-lg"
         >My Pantry</a
       >
+      <a href="/money-leaderboard" class="text-gray-800 hover:text-green-500 text-lg"
+        >Leaderboards</a
+      >
+      <a href="/shopping-list" class="text-gray-800 hover:text-green-500 text-lg"
+        >Shopping Lists</a
+      >
       <a href="/profile" class="text-gray-800 hover:text-green-500 text-lg"
         >Profile</a
       >
@@ -127,6 +133,14 @@
       href="/pantry"
       class="block text-gray-800 hover:text-green-500 text-lg mb-2">My Pantry</a
     >
+    <a
+    href="/co2-leaderboard"
+    class="block text-gray-800 hover:text-green-500 text-lg mb-2">Leaderboards</a
+  >
+  <a
+    href="/shopping-list"
+    class="block text-gray-800 hover:text-green-500 text-lg mb-2">Shopping Lists</a
+  >
     <a
       href="/profile"
       class="block text-gray-800 hover:text-green-500 text-lg mb-2">Profile</a
@@ -194,7 +208,11 @@
         </ul>
       </div>
       <div class="footer-logo md:text-center">
-        <h1 class="text-2xl font-bold text-green-600 italic">FoodSaver</h1>
+        <img
+        class="w-20 h-20 mx-auto"
+        src="../../../foodsaver_logo.png"
+        alt="Leaf Background"
+      />
         <p class="text-gray-700 mt-2">
           Helping you make the most of your food, save money, and reduce waste.
           Let's make sustainability simple.

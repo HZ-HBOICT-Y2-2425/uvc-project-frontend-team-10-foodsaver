@@ -11,6 +11,7 @@
     convertToGrams,
     convertToMilliliters,
   } from "../../../utils/conversion.js";
+  import { API_KEY } from "../../../lib/index"; // Import the API key
 
   let user_id = 1;
   authStore.subscribe((state) => {
@@ -26,13 +27,15 @@
   let showModal = false;
   let pantry = [];
   let categories = [];
+  let savings =  [];
   let showIngredientModal = writable<boolean>(false);
   let currentStepIndex = writable<number | null>(null);
   let amountUsed = writable<number>(0);
   let measurementUnit = writable<string>("grams");
+  let category = writable<string>("");
   let selectedIngredient = writable<string>("");
   let selectedIngredients: {
-    [key: string]: { amount: number; measurement: string };
+    [key: string]: { amount: number; measurement: string, category: string };
   } = {}; // Initialize selectedIngredients
   let warningMessage = writable<string>("");
   let editIngredient = writable<string>("");
@@ -42,6 +45,8 @@
   let missingIngredients = [];
   let showShoppingList = false;
   let isButtonDisabled = false;
+  let totalCo2Saved = 0;
+  let totalMoneySaved = 0;
 
   const measurementUnits = [
     "grams",
@@ -76,8 +81,17 @@
   });
 
   // Fetch pantry items from backend when component mounts
-  onMount(() => {
+  onMount(async () => {
     fetchPantryItems();
+    const fetchedSavings = await fetchSavings();
+    console.log("Fetched savings:", fetchedSavings); // Log the fetched savings
+    if (fetchedSavings && fetchedSavings.data) {
+      totalCo2Saved = parseFloat(fetchedSavings.data.co2_saved) || 0;
+      totalMoneySaved = parseFloat(fetchedSavings.data.money_saved) || 0;
+      console.log("Current savings:", totalCo2Saved, totalMoneySaved);
+    } else {
+      console.error("Failed to fetch current savings");
+    }
   });
 
   async function fetchPantryItems() {
@@ -87,9 +101,10 @@
       );
       const data = await response.json();
       if (response.ok) {
-        pantry = data;
-        pantryStore.set(pantry);
+        pantry = data.pantryItems;
         categories = data.categories;
+        categoriesStore.set(categories);
+        pantryStore.set(pantry);
       } else {
         console.error("Error fetching pantry items:", data.error);
       }
@@ -100,20 +115,31 @@
 
   const saveUsedAmount = (): void => {
     const selectedIngredientValue = $selectedIngredient; // Get the value of selectedIngredient
+    const $filteredPantry = pantry; // Get the current value of filteredPantry
+    const $filteredCategories = categories;
+    const ingredientCategory = $filteredPantry.find(
+      (item) => item.name === selectedIngredientValue,
+    )?.category;
     selectedIngredients[selectedIngredientValue] = {
       amount: $amountUsed,
       measurement: $measurementUnit,
+      category: ingredientCategory,
     };
-
+    console.log("Filtered Categories:", $filteredCategories);
     // Close the form
     showIngredientModal.set(false);
   };
 
   const saveEditedAmount = (): void => {
     const ingredientName = $editIngredient;
+    const $filteredPantry = pantry; // Get the current value of filteredPantry
+    const ingredientCategory = $filteredPantry.find(
+      (item) => item.name === ingredientName,
+    )?.category;
     selectedIngredients[ingredientName] = {
       amount: $editAmount,
       measurement: $editMeasurement,
+      category: ingredientCategory
     };
 
     // Close the form
@@ -124,49 +150,73 @@
     delete selectedIngredients[ingredientName];
   };
 
-  // Filter only the pantry items without categories
-  const filteredPantry = derived(pantryStore, ($pantry) => {
-    if (!$pantry || !$pantry.pantryItems) {
-      return [];
-    }
-
-    // Extract pantry items without categories
-    const filteredPantryItems = $pantry.pantryItems;
-
-    return filteredPantryItems;
-  });
-
   const updateIngredientsAndIncrementRecipeCount = async (): Promise<void> => {
     // Disable the button and start the timer
     isButtonDisabled = true;
     setTimeout(() => {
       isButtonDisabled = false;
-    }, 1800000);;
+    }, 1800000);
 
     let invalidIngredients = []; // Array to collect invalid ingredient names
     const token = $authStore.token;
 
     try {
-      const $filteredPantry = get(filteredPantry); // Get the current value of filteredPantry
-
+      const $filteredPantry = pantry; // Get the current value of filteredPantry
+      const $filteredCategories = categories; // Get the current value of filteredCategories
       // Loop through selected ingredients and update quantities
-      for (const [ingredientName, details] of Object.entries(selectedIngredients)) {
-        const ingredient = $filteredPantry.find((item) => item.name === ingredientName);
+      for (const [ingredientName, details] of Object.entries(
+        selectedIngredients,
+      )) {
+        const ingredient = $filteredPantry.find(
+          (item) => item.name === ingredientName,
+        );
+        const selectedCategory = details.category;  // Get the category of the selected ingredient
+        const categoryDetails = $filteredCategories.find(
+          (item) => item.category === selectedCategory,
+        );
+        console.log(`Category details for ${selectedCategory}:`, categoryDetails);
+        if (!categoryDetails) {
+          console.warn(`Category details not found for ${selectedCategory}`);
+          invalidIngredients.push(ingredientName);
+          continue;
+        }
+
         const currentQuantity = ingredient?.quantity || 0;
         const currentMeasurement = ingredient?.measurement || "grams";
         let newQuantity = currentQuantity;
 
         // Convert the amount used to the same unit as the current quantity
         if (currentMeasurement === "grams") {
-          if (["grams", "kilograms", "tablespoons", "teaspoons", "cups", "pounds"].includes(details.measurement)) {
+          if (
+            [
+              "grams",
+              "kilograms",
+              "tablespoons",
+              "teaspoons",
+              "cups",
+              "pounds",
+            ].includes(details.measurement)
+          ) {
             newQuantity -= convertToGrams(details.amount, details.measurement);
           } else {
             invalidIngredients.push(ingredientName);
             continue;
           }
         } else if (currentMeasurement === "milliliters") {
-          if (["milliliters", "liters", "tablespoons", "teaspoons", "cups", "ounces"].includes(details.measurement)) {
-            newQuantity -= convertToMilliliters(details.amount, details.measurement);
+          if (
+            [
+              "milliliters",
+              "liters",
+              "tablespoons",
+              "teaspoons",
+              "cups",
+              "ounces",
+            ].includes(details.measurement)
+          ) {
+            newQuantity -= convertToMilliliters(
+              details.amount,
+              details.measurement,
+            );
           } else {
             invalidIngredients.push(ingredientName);
             continue;
@@ -174,6 +224,19 @@
         } else {
           newQuantity -= details.amount;
         }
+
+        // Calculate CO2 and money saved
+        const co2EmissionsPer1kg = categoryDetails?.co2_emissions_per_1kg;
+        const costPer1kg = categoryDetails?.cost_per_1kg;
+        const amountUsedInKg = details.amount / 1000; // Convert amount used to kg
+
+
+        totalCo2Saved += co2EmissionsPer1kg * amountUsedInKg;
+        totalMoneySaved += costPer1kg * amountUsedInKg;
+
+        console.log(
+          `Total CO2 Saved: ${totalCo2Saved}, Total Money Saved: ${totalMoneySaved}`,
+        );
 
         // Remove or update the ingredient based on the new quantity
         if (newQuantity <= 0) {
@@ -210,16 +273,19 @@
       }
 
       // Increment the recipe count
-      const response = await fetch('http://localhost:4000/api/users/increment-recipe-count', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        "http://localhost:4000/api/users/increment-recipe-count",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to increment recipe count.');
+        throw new Error("Failed to increment recipe count.");
       }
 
       const data = await response.json();
@@ -229,12 +295,80 @@
       }));
 
       console.log("Recipe count incremented successfully.");
+
+      // Update savings in the database
+      await updateSavings(user_id, totalMoneySaved, totalCo2Saved);
     } catch (error) {
-      console.error('Error updating ingredients or incrementing recipe count:', error);
+      console.error(
+        "Error updating ingredients or incrementing recipe count:",
+        error,
+      );
     }
 
     if (invalidIngredients.length > 0) {
       console.warn("Invalid ingredients:", invalidIngredients.join(", "));
+    }
+  };
+
+  const fetchSavings = async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:4000/api/users/${user_id}/savings`,
+      );
+      if (response.ok) {
+        const data = await response.json();
+        totalCo2Saved = data.co2_saved;
+        totalMoneySaved = data.money_saved;
+        return data;
+      } else {
+        console.error("Failed to fetch savings:", response.statusText);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching savings:", error);
+      return null;
+    }
+  };
+
+  const updateSavings = async (user_id, moneySaved, co2Saved) => {
+    try {
+      console.log("Updating savings with values:", {
+        user_id,
+        moneySaved,
+        co2Saved,
+      });
+
+      const response = await fetch(
+        `http://localhost:4000/api/users/${user_id}/update/savings`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            money_saved: moneySaved,
+            co2_saved: co2Saved,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error updating savings:", errorText);
+        return;
+      }
+
+      const data = await response.json();
+      console.log("Server response:", data);
+
+      if (data.success) {
+        console.log("Savings updated successfully!");
+        await fetchSavings(); // Fetch the updated savings
+      } else {
+        console.error("Error updating savings:", data.message);
+      }
+    } catch (error) {
+      console.error("Error updating savings:", error);
     }
   };
 
@@ -264,33 +398,6 @@
       warningMessage.set(
         `Error removing ingredient: ${name}. ${error.message}`,
       );
-    }
-  };
-
-  const updateSavings = async (user_id, moneySaved, co2Saved) => {
-    try {
-      const response = await fetch(
-        `http://localhost:4000/users/${user_id}/savings`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            money_saved: moneySaved,
-            co2_saved: co2Saved,
-          }),
-        },
-      );
-
-      const data = await response.json();
-      if (data.success) {
-        console.log("Savings updated successfully!");
-      } else {
-        console.error("Error updating savings:", data.message);
-      }
-    } catch (error) {
-      console.error("Error updating savings:", error);
     }
   };
 
@@ -520,18 +627,8 @@
       console.error("Error fetching shopping lists:", error.message);
     }
   }
-
-  // Example call for pantry items (replace with actual function logic)
-  fetchPantryItems();
-
-  const openAddManually = () => {
-    category.set("");
-    ingredient.set("");
-    weight.set(0);
-    expirationDate.set("");
-    addManually.set(true);
-  };
 </script>
+
 {#if recipe}
   <div class="w-full mx-auto px-4">
     <section class="flex flex-col lg:flex-row mt-5">
@@ -608,13 +705,14 @@
             reduction.
           </p>
           <button
-          class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full {isButtonDisabled ? 'disabled' : ''}"
-          on:click={updateIngredientsAndIncrementRecipeCount}
-          disabled={isButtonDisabled}
-        >
-          Complete
-        </button>
-        
+            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full {isButtonDisabled
+              ? 'disabled'
+              : ''}"
+            on:click={updateIngredientsAndIncrementRecipeCount}
+            disabled={isButtonDisabled}
+          >
+            Complete
+          </button>
         </div>
       </div>
 
@@ -753,7 +851,7 @@
             class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
           >
             <option value="">Select an ingredient</option>
-            {#each $filteredPantry as ingredient}
+            {#each pantry as ingredient}
               <option value={ingredient.name}>{ingredient.name}</option>
             {/each}
           </select>
@@ -899,6 +997,12 @@
   </div>
 {/if}
 
+<!-- Display savings -->
+<div class="savings-info">
+  <p>Money Saved: {savings.money_saved}</p>
+  <p>CO2 Saved: {savings.co2_saved}</p>
+</div>
+
 <style>
   /* Add your custom styles here */
   .step {
@@ -909,5 +1013,4 @@
     background-color: gray !important;
     cursor: not-allowed;
   }
-
 </style>

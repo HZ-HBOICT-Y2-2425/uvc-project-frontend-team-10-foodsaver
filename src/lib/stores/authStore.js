@@ -7,6 +7,7 @@ export const authStore = writable(
     token: null,
     recipeCount: 0, // Add this for tracking the recipe count
   },
+  
   (set) => {
     const savedLoginState = localStorage.getItem('isLoggedIn') === 'true';
     const savedUser = JSON.parse(localStorage.getItem('user'));
@@ -37,7 +38,7 @@ export function login(user, token) {
     user: user,
     token: token,
   });
-}
+};
 
 export function logout() {
   authStore.set({
@@ -49,4 +50,4 @@ export function logout() {
   localStorage.removeItem('user');
   localStorage.removeItem('authToken');
   localStorage.removeItem('recipeCount'); // Clear this as well
-}
+};

@@ -187,18 +187,6 @@
         return filteredPantryItems;
     });
 
-    // Filter only the pantry items without categories
-    const filteredPantryCategories = derived(categoriesStore, ($pantry) => {
-        if (!$pantry || !$pantry.categories) {
-            return [];
-        }
-
-        // Extract pantry items without categories
-        const filteredPantryCategories = $pantry.categories;
-
-        return filteredPantryCategories;
-    });
-
     // Reactive variables
     const visibleIngredientCount = 5; // Number of ingredients visible at a time
     const switchingIngredients = 1; //Number of ingredients switched each time the arrow is clicked

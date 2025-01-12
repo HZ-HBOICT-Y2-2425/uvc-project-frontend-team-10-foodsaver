@@ -182,11 +182,11 @@
     </header>
   
     <section class="w-full max-w-5xl flex flex-col sm:flex-row items-start">
-      <div class="flex flex-col items-center bg-white shadow-lg rounded-lg p-6 sm:w-1/3">
+      <div class="flex flex-col items-center bg-white shadow-lg rounded-lg p-6 w-full">
         <img
-          src="/images/profile-placeholder.png"
+          src="./profileicon.png"
           alt="Profile Avatar"
-          class="w-32 h-32 rounded-full border-4 border-gray-300 mb-6"
+          class="w-32 h16 rounded-full border-4 border-gray-300 mb-6"
         />
 
         <form on:submit|preventDefault={updateUsername} class="w-full space-y-4">
@@ -253,7 +253,7 @@
         </div>
       </div>
   
-      <div class="flex-grow mt-8 sm:mt-0 sm:ml-8 bg-white shadow-lg rounded-lg p-6 text-center">
+      <div class="w-full flex-grow mt-8 sm:mt-0 sm:ml-8 bg-white shadow-lg rounded-lg p-6 text-center">
         <h2 class="text-2xl font-semibold text-gray-800 mb-4">Achievements</h2>
         <div class="badge-container mt-4 flex flex-wrap justify-center gap-4">
           {#each badges as badge}

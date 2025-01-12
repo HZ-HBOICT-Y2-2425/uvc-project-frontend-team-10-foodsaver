@@ -36,6 +36,8 @@
     let selectedIngredients: string[] = [];
     let recipes: any[] = [];
     let seasonalRecipes: any[] = [];
+    // Object to track the favorites status of each recipe
+    let favoriteStates: { [key: string]: boolean } = {};
     let username = "";
     let user_id = 1;
 
@@ -275,7 +277,7 @@
     }
 
     // Fetch seasonal recipes
-    onMount(async () => {
+    async function fetchSeasonalRecipes() {
         try {
             const month = new Date().getMonth() + 1;
             let seasonalIngredient = "";
@@ -292,11 +294,13 @@
 
             console.log(
                 "Fetching seasonal recipes with ingredient:",
-                seasonalIngredient,
+                seasonalIngredient
             );
+
             const response = await fetch(
-                `https://api.spoonacular.com/recipes/findByIngredients?ingredients=${seasonalIngredient}&number=8&apiKey=${API_KEY}`,
+                `https://api.spoonacular.com/recipes/findByIngredients?ingredients=${seasonalIngredient}&number=8&apiKey=${API_KEY}`
             );
+
             if (response.ok) {
                 const fetchedRecipes = await response.json();
                 seasonalRecipes = fetchedRecipes.map((recipe) => ({
@@ -304,17 +308,103 @@
                     title: recipe.title,
                     image: recipe.image,
                 }));
+
                 console.log("Fetched seasonal recipes:", seasonalRecipes);
             } else {
                 console.error(
                     "Failed to fetch seasonal recipes:",
-                    response.statusText,
+                    response.statusText
                 );
             }
         } catch (error) {
             console.error("Error fetching seasonal recipes:", error);
         }
+    }
+
+ // Función para verificar el estado de favorito de una receta
+ async function checkFavoriteStatus(recipe_id: string) {
+        try {
+            const response = await fetch(
+                `http://localhost:3012/check-favorite/${recipe_id}?user_id=${user_id}`
+            );
+
+            if (response.ok) {
+                const data = await response.json();
+                favoriteStates[recipe_id] = data.isFavorite;
+            } else {
+                console.error("Error al verificar el estado de favorito");
+            }
+        } catch (error) {
+            console.error("Error al verificar el estado de favorito:", error);
+        }
+    }
+
+    // Alternar el estado de favorito para una receta específica
+ export async function toggleFavorite(recipe_id: string) {
+        if (favoriteStates[recipe_id]) {
+            const response = await fetch(
+                `http://localhost:3012/favorites/${recipe_id}`,
+                {
+                    method: "DELETE",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ user_id }),
+                }
+            );
+
+            if (response.ok) {
+                alert("This recipe is removed from favorites");
+                favoriteStates[recipe_id] = false;
+            } else {
+                const error = await response.json();
+                alert(`Failed to remove from favorites: ${error.error}`);
+            }
+        } else {
+            const response = await fetch("http://localhost:3012/favorites", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ recipe_id, user_id }),
+            });
+
+            if (response.ok) {
+                alert("This recipe is added to favorites");
+                favoriteStates[recipe_id] = true;
+            } else {
+                const error = await response.json();
+                alert(`Failed to add to favorites: ${error.error}`);
+            }
+        }
+
+        checkFavoriteStatus(recipe_id); // Actualizar el estado después de cambiarlo
+    }
+
+
+ // Ejecutar al montar el componente
+ onMount(async () => {
+        await fetchSeasonalRecipes();
+        await checkFavoritesForSeasonalRecipes();
+
+        //await fetchRecipes(expiringIngredients);
+        await checkFavoritesForExpiringRecipes();
     });
+
+async function checkFavoritesForSeasonalRecipes() {
+        for (const recipe of seasonalRecipes) {
+            await checkFavoriteStatus(recipe.id);
+        }
+    }
+
+// Verificar el estado de favoritos para las recetas expiring
+async function checkFavoritesForExpiringRecipes() {
+    await delay(500);
+        for (const recipe of recipes) {
+            await checkFavoriteStatus(recipe.id);
+        }
+    }
+
+ // Función para pausar la ejecución por un tiempo específico
+ function delay(ms: number) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+    }
 
     function goToRecipeDetails(recipeId) {
         goto(`/recipe/${recipeId}`);
@@ -585,6 +675,12 @@
                                 <p class="font-semibold text-lg mb-2">
                                     {recipe.title}
                                 </p>
+                                <img
+                        src={favoriteStates[recipe.id] ? "/solid-heart.png" : "/blank-heart.png"}
+                        alt="Favorite"
+                        class="inline-block w-6 h-6 cursor-pointer ml-3"
+                        on:click={() => toggleFavorite(recipe.id)}
+                    />
                             </div>
                         {/each}
                     </div>
@@ -656,6 +752,12 @@
                                 <p class="font-semibold text-lg mb-2">
                                     {recipe.title}
                                 </p>
+                                <img
+                        src={favoriteStates[recipe.id] ? "/solid-heart.png" : "/blank-heart.png"}
+                        alt="Favorite"
+                        class="inline-block w-6 h-6 cursor-pointer ml-3"
+                        on:click={() => toggleFavorite(recipe.id)}
+                    />
                             </div>
                         {/each}
                     </div>

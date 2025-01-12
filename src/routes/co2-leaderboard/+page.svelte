@@ -1,12 +1,12 @@
 <script>
     import { onMount } from 'svelte';
-  
+    import { goto } from "$app/navigation";
     let leaderboard = [];
   
     // Load backend data when mounting component
     onMount(async () => {
       try {
-        const response = await fetch('http://localhost:4001/api/users/co2-leaderboard');
+        const response = await fetch('http://localhost:4000/api/users/co2-leaderboard');
         if (response.ok) {
           const data = await response.json();
           // Map the data to fit the leaderboard structure
@@ -33,8 +33,15 @@
     });
   </script>
   
+  <button
+  class="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring focus:ring-green-300"
+  on:click={() => goto("/money-leaderboard")}
+  >
+  See Money
+  </button>
+
   <div class="leaderboard-container">
-    <h1 class="leaderboard-title">Leaderboard</h1>
+    <h1 class="leaderboard-title">CO2 Saved Leaderboard</h1>
     <div class="podium">
       <!-- Second place: now the first to appear -->
       {#if leaderboard.length > 1}

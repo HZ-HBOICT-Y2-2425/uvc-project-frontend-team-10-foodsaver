@@ -286,6 +286,14 @@
     >
       Community
     </button>
+
+
+    <button
+      class="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring focus:ring-green-300"
+      on:click={() => goto("/money-leaderboard")}
+    >
+      Leaderboard
+    </button>
   </div>
   
   {#if isLoading}

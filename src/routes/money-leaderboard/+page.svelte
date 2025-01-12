@@ -7,7 +7,7 @@
     // Load backend data when mounting component
     onMount(async () => {
       try {
-        const response = await fetch('http://localhost:4001/api/users/money-leaderboard');
+        const response = await fetch('http://localhost:4000/api/users/money-leaderboard');
         if (response.ok) {
           const data = await response.json();
           // Map the data to fit the leaderboard structure
@@ -42,7 +42,7 @@
   </button>
   
   <div class="leaderboard-container">
-    <h1 class="leaderboard-title">Leaderboard</h1>
+    <h1 class="leaderboard-title">Money Saved Leaderboard</h1>
     <div class="podium">
       <!-- Second place: now the first to appear -->
       {#if leaderboard.length > 1}

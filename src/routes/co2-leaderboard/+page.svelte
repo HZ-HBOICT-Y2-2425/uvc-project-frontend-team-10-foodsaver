@@ -13,7 +13,7 @@
           leaderboard = data.data.map((user, index) => ({
             rank: index + 1,
             username: user.username,
-            points: user.email, // We change points by email, as requested
+            co2Saved: user.co2_saved, // Display CO2 saved for each user
             avatar: `https://cdn-icons-png.flaticon.com/512/2945/294551${index % 6 + 1}.png`, // Random avatar
             medal:
               index === 0
@@ -43,35 +43,36 @@
   <div class="leaderboard-container">
     <h1 class="leaderboard-title">CO2 Saved Leaderboard</h1>
     <div class="podium">
-      <!-- Second place: now the first to appear -->
+      <!-- First place: now the first to appear -->
       {#if leaderboard.length > 1}
         <div class="podium-item">
           <img class="medal" src={leaderboard[1].medal} alt={`Medal for rank ${leaderboard[1].rank}`} />
-          <span class="points">{leaderboard[1].points} CO2 liters</span>
+          <span class="points">{leaderboard[1].co2Saved} kg</span>
           <div class="avatar-container">
             <p>{leaderboard[1].username}</p>
           </div>
           <div class="rank-circle">{leaderboard[1].rank}</div>
         </div>
       {/if}
-    
-      <!-- First place: now the second to appear -->
+
+      <!-- Second place: now the second to appear -->
       {#if leaderboard.length > 0}
         <div class="podium-item center-podium">
           <img class="medal" src={leaderboard[0].medal} alt={`Medal for rank ${leaderboard[0].rank}`} />
-          <span class="points">{leaderboard[0].points} CO2 liters</span>
+          <span class="points">{leaderboard[0].co2Saved} kg</span>
           <div class="avatar-container">
             <p>{leaderboard[0].username}</p>
           </div>
           <div class="rank-circle">{leaderboard[0].rank}</div>
         </div>
       {/if}
+      
     
       <!-- Third place: does not change -->
       {#if leaderboard.length > 2}
         <div class="podium-item">
           <img class="medal" src={leaderboard[2].medal} alt={`Medal for rank ${leaderboard[2].rank}`} />
-          <span class="points">{leaderboard[2].points} CO2 liters</span>
+          <span class="points">{leaderboard[2].co2Saved} kg</span>
           <div class="avatar-container">
             <p>{leaderboard[2].username}</p>
           </div>
@@ -81,11 +82,11 @@
     </div>
     
     <table class="ranking-table">
-      {#each leaderboard.slice(3) as { rank, username, points, avatar }}
+      {#each leaderboard.slice(3) as { rank, username, co2Saved }}
         <tr>
           <td>{rank}</td>
           <td>{username}</td>
-          <td class="points">{points} CO2 liters</td>
+          <td class="points">{co2Saved} kg</td>
         </tr>
       {/each}
     </table>

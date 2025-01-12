@@ -650,21 +650,23 @@
               <li>{ingredient.original}</li>
             {/each}
           </ul>
+        </div>
+
+        <!-- Button to add amount used and save shopping list -->
+        <div class="flex justify-between mt-4">
           <button
-            class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 mt-4"
+            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex-1 mr-2 text-center hidden lg:flex justify-center items-center"
+            on:click={() => showIngredientModal.set(true)}
+          >
+            Add Amount Used
+          </button>
+          <button
+            class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 flex-1 ml-2"
             on:click={toggleShoppingList}
           >
             Show Shopping List
           </button>
         </div>
-
-        <!-- Button to add amount used -->
-        <button
-          class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full mb-4 hidden lg:block"
-          on:click={() => showIngredientModal.set(true)}
-        >
-          Add Amount Used
-        </button>
         <img
           src="./../../add-button.png"
           alt="Add Amount Used"
@@ -982,7 +984,7 @@
       {#if missingIngredients.length > 0}
         <ul>
           {#each missingIngredients as ingredient}
-            <li>{ingredient.name} - {ingredient.requiredQuantity}g</li>
+            <li>{ingredient.name}</li>
           {/each}
         </ul>
         <div class="mt-4 flex gap-4 justify-center">

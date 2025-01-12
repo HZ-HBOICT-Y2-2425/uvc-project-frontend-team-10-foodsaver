@@ -84,8 +84,11 @@
       <a href="/favorite" class="text-gray-800 hover:text-green-500 text-lg"
         >Favorite Recipes</a
       >
-      <a href="/shopping-list" class="text-gray-800 hover:text-green-500 text-lg"
+      <a href="/shoppinglists" class="text-gray-800 hover:text-green-500 text-lg"
         >Shopping Lists</a
+      >
+      <a href="/community" class="text-gray-800 hover:text-green-500 text-lg"
+        >Community</a
       >
       <a href="/profile" class="text-gray-800 hover:text-green-500 text-lg"
         >Profile</a
@@ -125,7 +128,8 @@
     <a href="/tips" class="block text-gray-800 hover:text-green-500 text-lg mb-2">Tips & Tricks</a>
     <a href="/pantry" class="block text-gray-800 hover:text-green-500 text-lg mb-2">My Pantry</a>
     <a href="/favorite" class="block text-gray-800 hover:text-green-500 text-lg mb-2">Favorite Recipes</a>
-    <a href="/shopping-list" class="block text-gray-800 hover:text-green-500 text-lg mb-2">Shopping Lists</a>
+    <a href="/shoppinglists" class="block text-gray-800 hover:text-green-500 text-lg mb-2">Shopping Lists</a>
+    <a href="/community" class="block text-gray-800 hover:text-green-500 text-lg mb-2">Community</a>
     <a href="/profile" class="block text-gray-800 hover:text-green-500 text-lg mb-2">Profile</a>
     <div class="w-full flex justify-end mt-2">
       <button

@@ -184,7 +184,7 @@
   <section class="w-full max-w-5xl flex flex-col sm:flex-row items-start">
     <div class="flex flex-col items-center bg-white shadow-lg rounded-lg p-6 sm:w-1/3">
       <img
-        src="/images/profile-placeholder.png"
+        src="./profileicon.png"
         alt="Profile Avatar"
         class="w-32 h-32 rounded-full border-4 border-gray-300 mb-6"
       />

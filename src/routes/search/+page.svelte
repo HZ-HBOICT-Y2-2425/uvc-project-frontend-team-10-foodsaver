@@ -133,12 +133,6 @@
           on:click={() => goToRecipeDetails(recipe.id)}
         />
         <p class="font-semibold text-lg">{recipe.title}</p>
-        <button
-          class="mt-2 text-red-500 hover:text-red-700 transition-colors"
-          on:click={goToFavorites}
-        >
-          <i class="fas fa-heart text-2xl"></i>
-        </button>
       </div>
     {/each}
   </div>

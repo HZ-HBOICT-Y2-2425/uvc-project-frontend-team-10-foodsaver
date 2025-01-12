@@ -1,6 +1,8 @@
+import { API_KEY } from '$lib';
+
 export async function load({ params, fetch }) {
   const { recipeId } = params;
-  const apiKey = "4b94021e0008460490fb26e12c8ec0f0";
+  const apiKey = API_KEY;
 
   try {
     const response = await fetch(`https://api.spoonacular.com/recipes/${recipeId}/information?apiKey=${apiKey}`);

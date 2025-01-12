@@ -66,6 +66,7 @@
           <div class="rank-circle">{leaderboard[0].rank}</div>
         </div>
       {/if}
+      
     
       <!-- Third place: does not change -->
       {#if leaderboard.length > 2}

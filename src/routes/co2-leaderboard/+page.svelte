@@ -49,7 +49,7 @@
       {#if leaderboard.length > 1}
         <div class="podium-item">
           <img class="medal" src={leaderboard[1].medal} alt={`Medal for rank ${leaderboard[1].rank}`} />
-          <span class="points">{leaderboard[1].co2Saved} kg</span>
+          <span class="points">{leaderboard[1].co2Saved} kg CO2e</span>
           <div class="avatar-container">
             <p>{leaderboard[1].username}</p>
           </div>
@@ -61,7 +61,7 @@
       {#if leaderboard.length > 0}
         <div class="podium-item center-podium">
           <img class="medal" src={leaderboard[0].medal} alt={`Medal for rank ${leaderboard[0].rank}`} />
-          <span class="points">{leaderboard[0].co2Saved} kg</span>
+          <span class="points">{leaderboard[0].co2Saved} kg CO2e</span>
           <div class="avatar-container">
             <p>{leaderboard[0].username}</p>
           </div>
@@ -74,7 +74,7 @@
       {#if leaderboard.length > 2}
         <div class="podium-item">
           <img class="medal" src={leaderboard[2].medal} alt={`Medal for rank ${leaderboard[2].rank}`} />
-          <span class="points">{leaderboard[2].co2Saved} kg</span>
+          <span class="points">{leaderboard[2].co2Saved} kg CO2e</span>
           <div class="avatar-container">
             <p>{leaderboard[2].username}</p>
           </div>
@@ -88,7 +88,7 @@
         <tr>
           <td>{rank}</td>
           <td>{username}</td>
-          <td class="points">{co2Saved} kg</td>
+          <td class="points">{co2Saved} kg CO2e</td>
         </tr>
       {/each}
     </table>

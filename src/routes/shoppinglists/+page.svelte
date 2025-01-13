@@ -8,6 +8,7 @@
     let savedShoppingLists = [];
     let isLoading = true;
     let selectedList = null;
+    let showModal = false;
 
     authStore.subscribe((state) => {
         console.log("Auth store state in home page: ", state);
@@ -66,10 +67,12 @@
 
     function handleSelectList(list) {
         selectedList = list;
+        showModal = true;
     }
 
     function closeSelectedList() {
         selectedList = null;
+        showModal = false;
     }
 
     async function removeShoppingList(listId) {
@@ -81,6 +84,7 @@
                 savedShoppingLists = savedShoppingLists.filter(list => list.id !== listId);
                 if (selectedList && selectedList.id === listId) {
                     selectedList = null;
+                    showModal = false;
                 }
                 alert('Shopping list removed successfully!');
             } else {
@@ -142,6 +146,23 @@
         <p>No saved shopping lists yet.</p>
     {/if}
 </div>
+
+{#if showModal && selectedList}
+    <div class="modal fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="modal-content bg-white p-6 rounded-lg shadow-lg">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-semibold">{selectedList.recipe_name || `Shopping List ${selectedList.id}`}</h3>
+                <button class="text-red-500 font-bold" on:click={closeSelectedList}>Close</button>
+            </div>
+            <ul class="list-none mt-2 text-center">
+                {#each selectedList.items as ingredient}
+                    <li class="text-gray-700">{ingredient.name}</li>
+                {/each}
+            </ul>
+            <button class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 mt-4" on:click={() => removeShoppingList(selectedList.id)}>Remove</button>
+        </div>
+    </div>
+{/if}
 
 <style>
     .container {
@@ -257,5 +278,24 @@
     .px-4 {
         padding-left: 1rem;
         padding-right: 1rem;
+    }
+
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-content {
+        background-color: white;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
 </style>

@@ -90,7 +90,7 @@
             {/each}
         </div>
     {:else}
-        <p>Loading your favorite recipes...</p>
+        <p>You don't have any favorite recipes.</p>
     {/if}
 </div>
 

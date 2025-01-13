@@ -313,7 +313,7 @@
           </div>
           <div class="bg-blue-100 p-4 rounded-lg shadow-md">
             <h3 class="text-lg font-semibold text-blue-800">CO2 Reduced</h3>
-            <p class="text-2xl font-bold text-blue-600">{totalCo2Saved}kg</p>
+            <p class="text-2xl font-bold text-blue-600">{totalCo2Saved}kg CO2e</p>
           </div>
         </div>
       </div>

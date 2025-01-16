@@ -1,2 +1,2 @@
-export const API_KEY = "7e9812af07664d9cab95027605fc7484"; // Replace with your actual API key
+export const API_KEY = "093edbdbc34e44f2b586367cd2ea46e5"; // Replace with your actual API key
 

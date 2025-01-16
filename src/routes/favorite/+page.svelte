@@ -43,12 +43,6 @@
             responses.map(async (response) => {
                 if (response.ok) {
                     return response.json();
-                } else {
-                    console.error(
-                        `Error fetching recipe ID ${id}:`,
-                        response.statusText,
-                    );
-                    return null;
                 }
             }),
         );

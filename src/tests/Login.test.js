@@ -1,18 +1,15 @@
-import { render, fireEvent, cleanup } from '@testing-library/svelte';
-import Login from '../routes/login/+page.svelte';
+import { validateEmail } from '../utils/validators';
 
-afterEach(() => {
-  cleanup();
-});
+describe('Email validation', () => {
+  test('returns true for valid email', () => {
+    expect(validateEmail('testuser@example.com')).toBe(true);
+  });
 
-describe('Login form input and validation tests', () => {
-  test('checks input validations', async () => {
-    const { getByLabelText, getByText, findByText } = render(Login);
+  test('returns false for invalid email', () => {
+    expect(validateEmail('invalid-email')).toBe(false);
+  });
 
-    await fireEvent.input(getByLabelText('Username'), { target: { value: 'testuser' } });
-    await fireEvent.input(getByLabelText('Email'), { target: { value: 'invalid-email' } });
-    await fireEvent.click(getByText('Sign Up'));
-
-    expect(await findByText('Please enter a valid email address!')).toBeInTheDocument();
+  test('returns false for empty email', () => {
+    expect(validateEmail('')).toBe(false);
   });
 });

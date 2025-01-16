@@ -7,7 +7,7 @@
     // Load backend data when mounting component
     onMount(async () => {
       try {
-        const response = await fetch('http://localhost:4000/api/users/money-leaderboard');
+        const response = await fetch('http://localhost:4001/api/users/money-leaderboard');
         if (response.ok) {
           const data = await response.json();
           // Map the data to fit the leaderboard structure

@@ -32,7 +32,7 @@ jobs:
 
       - name: Run ESLint
         run: |
-          eslint src --format json --output-file eslint-report.json 
+          npx eslint src --format json --output-file eslint-report.json 
 
       - name: Upload ESLint results 
         if: failure() 

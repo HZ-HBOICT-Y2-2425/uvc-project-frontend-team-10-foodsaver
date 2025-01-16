@@ -31,7 +31,8 @@ jobs:
         run: npm run build
 
       - name: Run ESLint
-        run: npm run lint  
+        run: |
+          eslint src --format json --output-file eslint-report.json 
 
       - name: Upload ESLint results 
         if: failure() 

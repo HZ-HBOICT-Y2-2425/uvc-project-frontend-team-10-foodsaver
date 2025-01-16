@@ -69,6 +69,6 @@ sequenceDiagram
     participant Build Server
 
     Developer->>GitHub Actions: Pushes code
-    GitHub Actions->>Build Server: Runs tests and builds application
+    GitHub Actions->>Build Server: Runs tests, ESLint and builds application
     Build Server-->>GitHub Actions: Build and test results
     GitHub Actions-->>Developer: Notifies about success/failure

@@ -179,9 +179,5 @@
       class="w-full py-3 bg-purple-200 text-black font-bold rounded-full text-sm hover:bg-purple-300 mb-6">
       Continue as Guest
     </button>
-    <div class="flex justify-between">
-      <a href="#" class="text-blue-700 text-sm font-medium hover:underline">Forget your password?</a>
-      <a href="#" class="text-blue-700 text-sm font-medium hover:underline">Problems logging in?</a>
-    </div>
   </div>
 </div>

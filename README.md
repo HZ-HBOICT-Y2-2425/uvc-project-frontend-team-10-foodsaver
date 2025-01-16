@@ -73,3 +73,4 @@ sequenceDiagram
     Build Server-->>GitHub Actions: Build and test results
     GitHub Actions-->>Developer: Notifies about success/failure
 
+,

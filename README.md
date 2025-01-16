@@ -67,11 +67,8 @@ sequenceDiagram
     participant Developer
     participant GitHub Actions
     participant Build Server
-    participant Deployment Server
 
     Developer->>GitHub Actions: Pushes code
     GitHub Actions->>Build Server: Runs tests and builds application
     Build Server-->>GitHub Actions: Build and test results
-    GitHub Actions->>Deployment Server: Deploys application
-    Deployment Server-->>GitHub Actions: Deployment result
     GitHub Actions-->>Developer: Notifies about success/failure

@@ -61,7 +61,7 @@
   async function updateUsername() {
     console.log('Sending token:', token);
 
-    const response = await fetch('http://localhost:4000/api/users/update-username', {
+    const response = await fetch('http://localhost:4001/api/users/update-username', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

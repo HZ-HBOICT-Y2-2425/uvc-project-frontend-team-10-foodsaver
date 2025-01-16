@@ -2,10 +2,10 @@ name: CI Pipeline
 on:
   push:
     branches:
-      - release/deployment-pipeline
+      - cin-portfolio
   pull_request:
     branches:
-      - release/deployment-pipeline
+      - cin-portfolio
 
 jobs:
   build:
@@ -31,7 +31,7 @@ jobs:
         run: npm run build
 
       - name: Run ESLint
-        run: npm run lint  
+        run: npm run lint
 
       - name: Upload ESLint results 
         if: failure() 

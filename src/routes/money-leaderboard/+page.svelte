@@ -7,7 +7,7 @@
     // Load backend data when mounting component
     onMount(async () => {
       try {
-        const response = await fetch('http://localhost:4000/api/users/money-leaderboard');
+        const response = await fetch('http://localhost:4001/api/users/money-leaderboard');
         if (response.ok) {
           const data = await response.json();
           // Map the data to fit the leaderboard structure
@@ -83,11 +83,13 @@
     
     <table class="ranking-table">
       {#each leaderboard.slice(3) as { rank, username, moneySaved}}
+      <tbody>
         <tr>
           <td>{rank}</td>
           <td>{username}</td>
           <td class="points">{moneySaved} €</td>
         </tr>
+      </tbody>
       {/each}
     </table>
   </div>
@@ -147,13 +149,6 @@
         background-color: #f9f9f9;
         border-radius: 8px;
         padding: 0.5rem;
-    }
-
-    .avatar-container img {
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        margin-bottom: 0.5rem;
     }
 
     .avatar-container p {

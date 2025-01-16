@@ -16,7 +16,7 @@
 
 	// Fetch the recipe (post) based on the recipe ID
 	async function fetchRecipe() {
-		const { post_id } = $page.params; // post_id remains as the backend uses this naming
+		const { post_id } = page.params; // post_id remains as the backend uses this naming
 		const response = await fetch(`http://localhost:3020/forum/${post_id}`);
 
 		if (response.ok) {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Switch, Redirect } from 'react-router-dom';
 // ...existing code...
-import LoginPage from './components/LoginPage'; // Adjust the import path as necessary
+import LoginPage from './routes/login'; // Adjust the import path as necessary
 // ...existing code...
 
 function App() {

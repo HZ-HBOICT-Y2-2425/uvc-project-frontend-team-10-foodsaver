@@ -56,6 +56,6 @@ export default [
   },
   // Ignore patterns
   {
-    ignores: ["node_modules", ".svelte-kit", "build", "public", "dist"],
+    ignores: ["node_modules", ".svelte-kit", "build", "public", "dist", "src/App.js"],
   },
 ];

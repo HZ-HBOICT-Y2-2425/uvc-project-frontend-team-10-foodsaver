@@ -19,14 +19,12 @@
         const response = await fetch(
             `http://localhost:3012/favorite-recipe-ids?user_id=${user_id}`,
         );
-        
+
 
         if (response.ok) {
             const ids = await response.json();
             favoriteRecipeIds = [...ids];
             await fetchRecipes();
-        } else {
-            console.error("Failed to fetch favorite recipe IDs");
         }
     }
 

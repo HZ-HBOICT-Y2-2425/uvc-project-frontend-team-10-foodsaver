@@ -35,7 +35,7 @@ export default [
       'sonarjs/no-inverted-boolean-check': 'warn',
 
       // Cyclomatic complexity rule: Warn if complexity exceeds 10
-      'complexity': ['warn', { 'max': 1 }],
+      'complexity': ['warn', { 'max': 10 }],
 
       // React-specific rules (optional)
       'react/jsx-uses-react': 'error',

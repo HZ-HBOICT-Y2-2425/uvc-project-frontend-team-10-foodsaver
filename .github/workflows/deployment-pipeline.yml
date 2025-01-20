@@ -2,10 +2,10 @@ name: CI Pipeline
 on:
   push:
     branches:
-      - cin-portfolio2
+      - cin-portfolio
   pull_request:
     branches:
-      - cin-portfolio2
+      - cin-portfolio
 
 jobs:
   build:

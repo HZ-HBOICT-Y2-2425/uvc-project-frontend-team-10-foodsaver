@@ -3,6 +3,11 @@
 	import { onMount } from "svelte";
 	import { page } from "$app/stores";
 	import { goto } from "$app/navigation";
+let post_id;
+$page.subscribe(($page) => {
+    post_id = $page.params.post_id;
+});
+
 
 	let post = null; // Keep backend naming
 	let isEditing = false;
@@ -16,7 +21,7 @@
 
 	// Fetch the recipe (post) based on the recipe ID
 	async function fetchRecipe() {
-		const { post_id } = $page.params; // post_id remains as the backend uses this naming
+		 // post_id remains as the backend uses this naming
 		const response = await fetch(`http://localhost:3020/forum/${post_id}`);
 
 		if (response.ok) {
@@ -35,7 +40,7 @@
 
 	// Update the recipe (post)
 	async function updateRecipe() {
-		const { post_id } = $page.params;
+		
 		const response = await fetch(`http://localhost:3020/forum/${post_id}`, {
 			method: "PUT",
 			headers: {
@@ -58,7 +63,7 @@
 
 	// Delete the recipe (post)
 	async function deleteRecipe() {
-		const { post_id } = $page.params;
+		
 		const response = await fetch(`http://localhost:3020/forum/${post_id}`, {
 			method: "DELETE",
 		});

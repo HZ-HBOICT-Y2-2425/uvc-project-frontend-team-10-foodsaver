@@ -18,10 +18,14 @@
   let selectedIngredients: string[] = [];
   let isVegetarian = false; // Checkbox for Vegetarian filter
   let isGlutenFree = false; // Checkbox for Gluten-Free filter
+  let searchParams: URLSearchParams;
 
   // Fetch recipes based on the selected ingredients from query parameters
   onMount(async () => {
-    const searchParams = new URLSearchParams($page.url.search);
+    page.subscribe(($page) => {
+        searchParams = new URLSearchParams($page.url.search);
+    });
+
     selectedIngredients = searchParams.get("ingredients")?.split(",") || [];
 
     if (selectedIngredients.length) {

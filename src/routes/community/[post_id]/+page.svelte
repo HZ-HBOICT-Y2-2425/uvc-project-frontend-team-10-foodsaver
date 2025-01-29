@@ -4,10 +4,11 @@
 	import { page } from "$app/stores";
 	import { goto } from "$app/navigation";
 let post_id;
-$page.subscribe(($page) => {
-    post_id = $page.params.post_id;
-});
 
+const unsubscribe = page.subscribe(($page) => {
+   post_id = $page.url.searchParams.get('post_id'); // or use $page.params if defined
+});
+onDestroy(unsubscribe);
 
 	let post = null; // Keep backend naming
 	let isEditing = false;

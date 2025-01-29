@@ -11,6 +11,8 @@
     convertToGrams,
     convertToMilliliters,
   } from "../../../utils/conversion.js";
+  import { page } from "$app/stores";
+  import { tick } from "svelte";
 
   let user_id = 1;
   authStore.subscribe((state) => {
@@ -305,8 +307,8 @@
         isButtonDisabled = false;
       }, 1800000);
 
-      // Redirect to profile page
-      goto('/profile');
+      // Redirect to profile page with congratulations notification
+      goto('/profile?congrats=true');
     } catch (error) {
       console.error(
         "Error updating ingredients or incrementing recipe count:",
